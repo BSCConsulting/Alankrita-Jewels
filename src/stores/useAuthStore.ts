@@ -2,9 +2,14 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { isFirebaseConfigured } from '@/lib/firebaseConfig'
+import { restoreCustomerSession, sendFirebaseOtp, signOutCustomer, verifyFirebaseOtp } from '@/lib/customerSession'
 
 /** Development OTP accepted when Supabase is not configured. */
 export const MOCK_OTP = '123456'
+
+/** Element id for Firebase's invisible reCAPTCHA; rendered by MobileVerificationStep. */
+export const RECAPTCHA_CONTAINER_ID = 'ak-recaptcha'
 
 interface AuthState {
   phone: string | null
@@ -36,6 +41,11 @@ export const useAuthStore = create<AuthState>()(
           set({ initialized: true })
           return
         }
+        if (isFirebaseConfigured) {
+          const session = await restoreCustomerSession()
+          set({ initialized: true, userId: session?.userId ?? null, phone: session?.phone ?? null })
+          return
+        }
         const { data } = await supabase.auth.getSession()
         const user = data.session?.user
         set({ initialized: true, userId: user?.id ?? null, phone: phoneFromUser(user) })
@@ -45,7 +55,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       sendOtp: async (phoneE164) => {
-        if (supabase) {
+        if (supabase && isFirebaseConfigured) {
+          await sendFirebaseOtp(phoneE164, RECAPTCHA_CONTAINER_ID)
+        } else if (supabase) {
           const { error } = await supabase.auth.signInWithOtp({ phone: phoneE164 })
           if (error) throw error
         }
@@ -60,6 +72,11 @@ export const useAuthStore = create<AuthState>()(
           set({ phone, userId: `mock-${phone}`, pendingPhone: null })
           return
         }
+        if (isFirebaseConfigured) {
+          const session = await verifyFirebaseOtp(code)
+          set({ phone: session.phone, userId: session.userId, pendingPhone: null })
+          return
+        }
         const { data, error } = await supabase.auth.verifyOtp({ phone, token: code, type: 'sms' })
         if (error) throw error
         set({ phone: phoneFromUser(data.user) ?? phone, userId: data.user?.id ?? null, pendingPhone: null })
@@ -68,7 +85,8 @@ export const useAuthStore = create<AuthState>()(
       setFullName: (fullName) => set({ fullName }),
 
       signOut: async () => {
-        await supabase?.auth.signOut()
+        if (isFirebaseConfigured) await signOutCustomer()
+        else await supabase?.auth.signOut()
         set({ phone: null, userId: null, pendingPhone: null })
       },
     }),

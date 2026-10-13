@@ -21,7 +21,7 @@ function mockShipment(provider: ShippingProvider): ShipmentResult {
 
 async function createShipment(provider: Exclude<ShippingProvider, 'MANUAL'>, order: Order): Promise<ShipmentResult> {
   const path = provider === 'SHIPROCKET' ? '/api/logistics/shiprocket' : '/api/logistics/delhivery'
-  const res = await callApi<ShipmentResult>(path, { order })
+  const res = await callApi<ShipmentResult>(path, { order }, 'admin')
   return res.available ? res.data : mockShipment(provider)
 }
 

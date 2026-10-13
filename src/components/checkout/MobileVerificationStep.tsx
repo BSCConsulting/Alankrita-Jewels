@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { KeyRound, Loader2, Smartphone } from 'lucide-react'
 import { isSupabaseConfigured, toErrorMessage } from '@/lib/supabase'
 import { maskPhone, normalizeIndianMobile } from '@/lib/format'
-import { MOCK_OTP, useAuthStore } from '@/stores/useAuthStore'
+import { MOCK_OTP, RECAPTCHA_CONTAINER_ID, useAuthStore } from '@/stores/useAuthStore'
 
 const phoneSchema = z.object({
   phone: z.string().refine((v) => normalizeIndianMobile(v) !== null, 'Enter a valid 10-digit Indian mobile number'),
@@ -138,6 +138,7 @@ export function MobileVerificationStep() {
       )}
 
       {serverError && <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{serverError}</p>}
+      <div id={RECAPTCHA_CONTAINER_ID} />
     </div>
   )
 }
