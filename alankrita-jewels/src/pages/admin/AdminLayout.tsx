@@ -1,0 +1,105 @@
+import { useEffect, useState, type ReactNode } from 'react'
+import { NavLink, Outlet } from 'react-router'
+import { FileSpreadsheet, LayoutDashboard, Loader2, LogOut, Menu, Package, PlusCircle, ShoppingCart, X } from 'lucide-react'
+import { isSupabaseConfigured } from '@/lib/supabase'
+import { cn } from '@/lib/format'
+import { useSeo } from '@/lib/seo'
+import { adminSignOut, currentAdminEmail } from '@/services/admin'
+import { useAdminStore } from '@/stores/useAdminStore'
+import AdminLogin from './AdminLogin'
+
+const NAV = [
+  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+  { to: '/admin/products', label: 'Products', icon: Package, end: true },
+  { to: '/admin/products/new', label: 'Add Product', icon: PlusCircle },
+  { to: '/admin/products/bulk', label: 'Bulk Upload', icon: FileSpreadsheet },
+]
+
+export default function AdminLayout() {
+  useSeo({ title: 'Admin', noindex: true })
+  const { adminEmail, sessionChecked, setSession } = useAdminStore()
+  const [navOpen, setNavOpen] = useState(false)
+
+  useEffect(() => {
+    currentAdminEmail().then(setSession, () => setSession(null))
+  }, [setSession])
+
+  const shell = (children: ReactNode) => (
+    <div data-theme="modern" className="min-h-screen bg-slate-50 font-admin text-slate-800">
+      {children}
+    </div>
+  )
+
+  if (!sessionChecked) return shell(<Loader2 className="mx-auto mt-40 size-8 animate-spin text-slate-400" />)
+  if (!adminEmail) return shell(<AdminLogin />)
+
+  const sidebar = (
+    <nav className="flex flex-col gap-1 p-3">
+      {NAV.map(({ to, label, icon: Icon, end }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={end}
+          onClick={() => setNavOpen(false)}
+          className={({ isActive }) =>
+            cn('flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium', isActive ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100')
+          }
+        >
+          <Icon className="size-4" /> {label}
+        </NavLink>
+      ))}
+    </nav>
+  )
+
+  return shell(
+    <div className="flex min-h-screen">
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
+        <div className="border-b border-slate-200 px-5 py-4">
+          <p className="font-bold">Alankrita Admin</p>
+          <p className="text-xs text-slate-500">{isSupabaseConfigured ? 'Supabase connected' : 'Mock mode (local data)'}</p>
+        </div>
+        {sidebar}
+        <div className="mt-auto border-t border-slate-200 p-3">
+          <p className="truncate px-3 pb-2 text-xs text-slate-500">{adminEmail}</p>
+          <button
+            onClick={async () => {
+              await adminSignOut()
+              setSession(null)
+            }}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+          >
+            <LogOut className="size-4" /> Sign out
+          </button>
+        </div>
+      </aside>
+
+      {navOpen && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setNavOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-64 bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+              <p className="font-bold">Alankrita Admin</p>
+              <button onClick={() => setNavOpen(false)} aria-label="Close menu">
+                <X className="size-5" />
+              </button>
+            </div>
+            {sidebar}
+          </div>
+        </div>
+      )}
+
+      <div className="min-w-0 flex-1">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
+          <button onClick={() => setNavOpen(true)} aria-label="Open menu">
+            <Menu className="size-5" />
+          </button>
+          <p className="font-semibold">Alankrita Admin</p>
+        </header>
+        <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
+          <Outlet />
+        </main>
+      </div>
+    </div>,
+  )
+}
