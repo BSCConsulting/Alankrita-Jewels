@@ -5,8 +5,14 @@ pages_build_output_dir = "./dist"
 # Non-secret configuration. Secrets (RAZORPAY_KEY_SECRET, SHIPROCKET_TOKEN, DELHIVERY_TOKEN,
 # SUPABASE_SERVICE_ROLE_KEY, WHATSAPP_TOKEN) must be set with `wrangler pages secret put <NAME>`
 # or in the Cloudflare dashboard, and in `.dev.vars` for local `wrangler pages dev`.
+#
+# VITE_* values are read at build time and shipped to the browser — public values only.
 [vars]
-SITE_URL = "https://alankritajewels.in"
+SITE_URL = "https://alankrita-jewels.pages.dev"
+SUPABASE_URL = "https://mwrqwtmqsyxvehtwskic.supabase.co"
+VITE_SITE_URL = "https://alankrita-jewels.pages.dev"
+VITE_SUPABASE_URL = "https://mwrqwtmqsyxvehtwskic.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13cnF3dG1xc3l4dmVodHdza2ljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MTIxMDYsImV4cCI6MjEwNzQ4ODEwNn0.wERV-DU-BVVUh0iSmDr21k11QEpY4HZ5DJ-zWTcfksM"
 SHIPROCKET_PICKUP_LOCATION = "Primary"
 DELHIVERY_BASE_URL = "https://track.delhivery.com"
 DELHIVERY_PICKUP_NAME = "ALANKRITA JEWELS"
