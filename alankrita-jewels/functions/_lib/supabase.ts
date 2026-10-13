@@ -1,6 +1,7 @@
 // Minimal Supabase REST client using the service-role key. Server-side only — bypasses RLS.
 import type { Env } from './env'
 import { error } from './http'
+import { verifyHs256 } from './jwt'
 
 export interface OrderRow {
   id: string
@@ -38,6 +39,10 @@ export async function rest<T>(env: Env, path: string, init: RequestInit = {}): P
 export async function getUserId(env: Env, request: Request): Promise<string | null> {
   const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
   if (!token) return null
+  if (env.SUPABASE_JWT_SECRET) {
+    const claims = await verifyHs256(token, env.SUPABASE_JWT_SECRET)
+    if (claims) return claims.aud === 'authenticated' && typeof claims.sub === 'string' ? claims.sub : null
+  }
   const res = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
     headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY!, authorization: `Bearer ${token}` },
   })

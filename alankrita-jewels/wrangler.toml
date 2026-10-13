@@ -13,6 +13,13 @@ SUPABASE_URL = "https://mwrqwtmqsyxvehtwskic.supabase.co"
 VITE_SITE_URL = "https://alankrita-jewels.pages.dev"
 VITE_SUPABASE_URL = "https://mwrqwtmqsyxvehtwskic.supabase.co"
 VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13cnF3dG1xc3l4dmVodHdza2ljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MTIxMDYsImV4cCI6MjEwNzQ4ODEwNn0.wERV-DU-BVVUh0iSmDr21k11QEpY4HZ5DJ-zWTcfksM"
+# Firebase phone OTP for checkout — leave blank to use Supabase Auth phone OTP instead.
+# Also requires the SUPABASE_JWT_SECRET secret (Supabase → Project Settings → JWT Keys → Legacy JWT secret).
+FIREBASE_PROJECT_ID = ""
+VITE_FIREBASE_PROJECT_ID = ""
+VITE_FIREBASE_API_KEY = ""
+VITE_FIREBASE_AUTH_DOMAIN = ""
+VITE_FIREBASE_APP_ID = ""
 SHIPROCKET_PICKUP_LOCATION = "Primary"
 DELHIVERY_BASE_URL = "https://track.delhivery.com"
 DELHIVERY_PICKUP_NAME = "ALANKRITA JEWELS"

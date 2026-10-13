@@ -4,6 +4,10 @@ export interface Env {
 
   SUPABASE_URL?: string
   SUPABASE_SERVICE_ROLE_KEY?: string
+  /** Legacy JWT secret (Supabase → Project Settings → JWT Keys). Signs customer sessions after Firebase phone OTP. */
+  SUPABASE_JWT_SECRET?: string
+
+  FIREBASE_PROJECT_ID?: string
 
   RAZORPAY_KEY_ID?: string
   RAZORPAY_KEY_SECRET?: string

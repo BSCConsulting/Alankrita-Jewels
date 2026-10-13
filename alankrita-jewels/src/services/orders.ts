@@ -1,5 +1,5 @@
 import { computeTotals } from '@/lib/pricing'
-import { supabase } from '@/lib/supabase'
+import { customerDb } from '@/lib/customerSession'
 import type { Order, OrderItem, PaymentMode, PaymentStatus, ShippingAddress } from '@/types'
 import { commitMockDb, delay, mockDb, uid } from './mockDb'
 
@@ -31,8 +31,8 @@ export const amountDueNow = (order: Pick<Order, 'payment_mode' | 'final_amount' 
   order.payment_mode === 'PARTIAL_COD' ? order.final_amount - order.balance_due_on_delivery : order.final_amount
 
 export async function placeOrder(input: PlaceOrderInput): Promise<Order> {
-  if (supabase) {
-    const { data, error } = await supabase.rpc('place_order', {
+  if (customerDb) {
+    const { data, error } = await customerDb.rpc('place_order', {
       p_items: input.items,
       p_customer_name: input.customerName,
       p_shipping_address: input.address,
@@ -123,11 +123,11 @@ export async function markMockOrderPaid(orderId: string, gatewayRef: string): Pr
 }
 
 export async function fetchOrderByNumber(orderNumber: string): Promise<Order | null> {
-  if (!supabase) {
+  if (!customerDb) {
     await delay(100)
     return mockDb().orders.find((o) => o.order_number === orderNumber) ?? null
   }
-  const { data, error } = await supabase.from('orders').select(ORDER_SELECT).eq('order_number', orderNumber).maybeSingle()
+  const { data, error } = await customerDb.from('orders').select(ORDER_SELECT).eq('order_number', orderNumber).maybeSingle()
   if (error) throw error
   return data ? normalizeOrder(data) : null
 }

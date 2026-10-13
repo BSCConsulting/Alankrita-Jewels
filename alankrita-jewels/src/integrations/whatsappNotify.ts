@@ -30,13 +30,17 @@ export interface NotifyResult {
 export async function sendTrackingNotification(order: Order): Promise<NotifyResult> {
   const message = trackingMessage(order)
   const waLink = whatsappLink(message, order.customer_phone.replace(/\D/g, ''))
-  const res = await callApi<{ mode: 'live' | 'mock' }>('/api/notify/whatsapp', {
-    to: order.customer_phone,
-    message,
-    orderNumber: order.order_number,
-    customerName: order.customer_name,
-    trackingUrl: order.tracking_url,
-    awb: order.awb_number,
-  })
+  const res = await callApi<{ mode: 'live' | 'mock' }>(
+    '/api/notify/whatsapp',
+    {
+      to: order.customer_phone,
+      message,
+      orderNumber: order.order_number,
+      customerName: order.customer_name,
+      trackingUrl: order.tracking_url,
+      awb: order.awb_number,
+    },
+    'admin',
+  )
   return { sent: res.available && res.data.mode === 'live', waLink }
 }

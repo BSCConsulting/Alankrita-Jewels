@@ -5,6 +5,10 @@
 SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 
+# Firebase phone OTP — Supabase → Project Settings → JWT Keys → Legacy JWT secret.
+SUPABASE_JWT_SECRET=
+FIREBASE_PROJECT_ID=
+
 # Razorpay — https://dashboard.razorpay.com/app/keys
 RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
