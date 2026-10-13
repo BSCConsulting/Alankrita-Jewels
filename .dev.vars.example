@@ -1,0 +1,26 @@
+# Cloudflare Pages Functions secrets — copy to `.dev.vars` for `npm run pages:dev`.
+# In production set each with: npx wrangler pages secret put <NAME>
+# Any provider left blank falls back to a mock implementation.
+
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Razorpay — https://dashboard.razorpay.com/app/keys
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+# Razorpay Dashboard → Webhooks → event `payment.captured` → URL https://<domain>/api/payments/webhook
+RAZORPAY_WEBHOOK_SECRET=
+# When Razorpay keys are blank, allow the mock gateway to mark Supabase orders as paid (dev only).
+ALLOW_MOCK_PAYMENTS=true
+
+# Shiprocket — API user token (Settings → API → Configure)
+SHIPROCKET_TOKEN=
+SHIPROCKET_BILLING_EMAIL=orders@alankritajewels.in
+
+# Delhivery — B2C API token
+DELHIVERY_TOKEN=
+
+# WhatsApp Cloud API (optional). Without it the admin gets a wa.me deep link instead.
+WHATSAPP_TOKEN=
+WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_TRACKING_TEMPLATE=

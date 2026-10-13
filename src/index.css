@@ -1,0 +1,197 @@
+@import "tailwindcss";
+
+/* Style a node only when a given theme is active: `heritage:font-display modern:rounded-3xl` */
+@custom-variant heritage (&:where([data-theme="heritage"], [data-theme="heritage"] *));
+@custom-variant modern (&:where([data-theme="modern"], [data-theme="modern"] *));
+
+/* Semantic tokens resolve to runtime CSS variables, so every utility re-themes instantly. */
+@theme inline {
+  --color-bg: var(--ak-bg);
+  --color-surface: var(--ak-surface);
+  --color-surface-muted: var(--ak-surface-muted);
+  --color-ink: var(--ak-ink);
+  --color-ink-muted: var(--ak-ink-muted);
+  --color-primary: var(--ak-primary);
+  --color-primary-ink: var(--ak-primary-ink);
+  --color-accent: var(--ak-accent);
+  --color-accent-ink: var(--ak-accent-ink);
+  --color-line: var(--ak-line);
+  --color-hero-from: var(--ak-hero-from);
+  --color-hero-to: var(--ak-hero-to);
+  --color-hero-ink: var(--ak-hero-ink);
+  --font-display: var(--ak-font-display);
+  --font-body: var(--ak-font-body);
+  --radius-card: var(--ak-radius-card);
+  --radius-pill: var(--ak-radius-pill);
+}
+
+/* Fixed brand palette, usable regardless of the active theme. */
+@theme {
+  --color-heritage-maroon: #4a0e17;
+  --color-heritage-gold: #d4af37;
+  --color-heritage-ivory: #fffdf9;
+  --color-modern-champagne: #f5ebe1;
+  --color-modern-rose: #e8b4b8;
+  --color-modern-charcoal: #1e293b;
+  --color-whatsapp: #25d366;
+  --font-telugu: "Noto Sans Telugu", "Noto Serif Telugu", sans-serif;
+  --font-admin: "Inter", system-ui, sans-serif;
+
+  --animate-fade-in: fade-in 0.25s ease-out both;
+  --animate-slide-up: slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-slide-in-right: slide-in-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-shimmer: shimmer 2.4s linear infinite;
+  --animate-ken-burns: ken-burns 6s ease-in-out infinite alternate;
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-up {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to { background-position: 200% 0; }
+  }
+  @keyframes ken-burns {
+    from { transform: scale(1) translateY(0); }
+    to { transform: scale(1.18) translateY(-3%); }
+  }
+}
+
+/* ---------------- Theme 1: The Heritage Vault ---------------- */
+:root,
+[data-theme="heritage"] {
+  --ak-bg: #fffdf9;
+  --ak-surface: #ffffff;
+  --ak-surface-muted: #fbf3e4;
+  --ak-ink: #2b0a10;
+  --ak-ink-muted: #6e4b45;
+  --ak-primary: #4a0e17;
+  --ak-primary-ink: #f6e3a8;
+  --ak-accent: #d4af37;
+  --ak-accent-ink: #3a0b12;
+  --ak-line: rgb(212 175 55 / 0.38);
+  --ak-hero-from: #3a0911;
+  --ak-hero-to: #6b1622;
+  --ak-hero-ink: #fbeecb;
+  --ak-font-display: "Cormorant Garamond", "Noto Serif Telugu", Georgia, serif;
+  --ak-font-body: "Inter", "Noto Sans Telugu", system-ui, sans-serif;
+  --ak-radius-card: 0.375rem;
+  --ak-radius-pill: 0.375rem;
+  --ak-card-shadow: 0 1px 0 rgb(212 175 55 / 0.25), 0 10px 30px -18px rgb(74 14 23 / 0.45);
+  color-scheme: light;
+}
+
+/* ---------------- Theme 2: The Modern Studio ---------------- */
+[data-theme="modern"] {
+  --ak-bg: #ffffff;
+  --ak-surface: rgb(255 255 255 / 0.72);
+  --ak-surface-muted: #f5ebe1;
+  --ak-ink: #1e293b;
+  --ak-ink-muted: #64748b;
+  --ak-primary: #1e293b;
+  --ak-primary-ink: #ffffff;
+  --ak-accent: #e8b4b8;
+  --ak-accent-ink: #1e293b;
+  --ak-line: rgb(30 41 59 / 0.1);
+  --ak-hero-from: #f5ebe1;
+  --ak-hero-to: #fbe4e5;
+  --ak-hero-ink: #1e293b;
+  --ak-font-display: "Outfit", "Noto Sans Telugu", system-ui, sans-serif;
+  --ak-font-body: "Inter", "Noto Sans Telugu", system-ui, sans-serif;
+  --ak-radius-card: 1.25rem;
+  --ak-radius-pill: 9999px;
+  --ak-card-shadow: 0 8px 32px -12px rgb(30 41 59 / 0.18);
+}
+
+@utility ak-btn {
+  @apply inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
+    disabled:cursor-not-allowed disabled:opacity-50;
+  border-radius: var(--ak-radius-pill);
+}
+@utility ak-btn-primary {
+  @apply ak-btn bg-primary text-primary-ink hover:brightness-110 active:brightness-95;
+}
+@utility ak-btn-accent {
+  @apply ak-btn bg-accent text-accent-ink hover:brightness-105;
+}
+@utility ak-btn-outline {
+  @apply ak-btn border border-line bg-transparent text-ink hover:bg-surface-muted;
+}
+@utility ak-btn-whatsapp {
+  @apply ak-btn bg-whatsapp text-white hover:brightness-105;
+}
+@utility ak-input {
+  @apply w-full border border-line bg-white px-3.5 py-3 text-base text-ink placeholder:text-ink-muted/60
+    focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none;
+  border-radius: calc(var(--ak-radius-card) * 0.6);
+}
+@utility ak-label {
+  @apply mb-1.5 block text-sm font-medium text-ink;
+}
+@utility ak-error {
+  @apply mt-1 text-xs font-medium text-red-600;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg text-ink font-body antialiased;
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+  h1, h2, h3, .font-display {
+    font-family: var(--ak-font-display);
+  }
+  [lang="te"] {
+    font-family: var(--font-telugu);
+  }
+}
+
+@layer components {
+  /* Card surface: warm framed card in Heritage, glassmorphic card in Modern. */
+  .ak-card {
+    background: var(--ak-surface);
+    border: 1px solid var(--ak-line);
+    border-radius: var(--ak-radius-card);
+    box-shadow: var(--ak-card-shadow);
+  }
+  [data-theme="modern"] .ak-card {
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+  }
+
+  /* Heritage temple-border motif divider; renders as a soft rose line in Modern. */
+  .ak-motif {
+    height: 14px;
+    background-repeat: repeat-x;
+    background-position: center;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='14' viewBox='0 0 28 14'%3E%3Cpath d='M0 7h6l4-5 4 5 4-5 4 5h6' fill='none' stroke='%23D4AF37' stroke-width='1.2'/%3E%3Ccircle cx='14' cy='11' r='1.4' fill='%23D4AF37'/%3E%3C/svg%3E");
+  }
+  [data-theme="modern"] .ak-motif {
+    height: 1px;
+    background-image: linear-gradient(90deg, transparent, #e8b4b8, transparent);
+  }
+
+  .ak-shimmer {
+    background: linear-gradient(90deg, var(--ak-surface-muted) 25%, var(--ak-surface) 50%, var(--ak-surface-muted) 75%);
+    background-size: 200% 100%;
+    @apply animate-shimmer;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,0 +1,12 @@
+name = "alankrita-jewels"
+compatibility_date = "2025-09-01"
+pages_build_output_dir = "./dist"
+
+# Non-secret configuration. Secrets (RAZORPAY_KEY_SECRET, SHIPROCKET_TOKEN, DELHIVERY_TOKEN,
+# SUPABASE_SERVICE_ROLE_KEY, WHATSAPP_TOKEN) must be set with `wrangler pages secret put <NAME>`
+# or in the Cloudflare dashboard, and in `.dev.vars` for local `wrangler pages dev`.
+[vars]
+SITE_URL = "https://alankritajewels.in"
+SHIPROCKET_PICKUP_LOCATION = "Primary"
+DELHIVERY_BASE_URL = "https://track.delhivery.com"
+DELHIVERY_PICKUP_NAME = "ALANKRITA JEWELS"

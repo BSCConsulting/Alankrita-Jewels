@@ -1,0 +1,99 @@
+import { SITE } from '@/config/site'
+
+export type Lang = 'en' | 'te'
+
+export interface Faq {
+  id: string
+  q: Record<Lang, string>
+  a: Record<Lang, string>
+}
+
+export const CHAT_UI: Record<Lang, Record<'title' | 'status' | 'greeting' | 'faqHeading' | 'cta' | 'call' | 'askThis', string>> = {
+  en: {
+    title: 'Alankrita Concierge',
+    status: 'Typically replies in 5 minutes',
+    greeting: 'Namaste! 🙏 Quick answers below — or chat with our stylists on WhatsApp.',
+    faqHeading: 'Frequently asked',
+    cta: 'Chat on WhatsApp',
+    call: 'Call',
+    askThis: 'Ask this on WhatsApp',
+  },
+  te: {
+    title: 'అలంకృత సహాయకులు',
+    status: 'సాధారణంగా 5 నిమిషాల్లో సమాధానం',
+    greeting: 'నమస్తే! 🙏 కింద త్వరిత సమాధానాలు ఉన్నాయి — లేదా WhatsApp లో మా స్టైలిస్ట్‌లతో మాట్లాడండి.',
+    faqHeading: 'తరచుగా అడిగే ప్రశ్నలు',
+    cta: 'WhatsApp లో చాట్ చేయండి',
+    call: 'కాల్',
+    askThis: 'ఈ ప్రశ్నను WhatsApp లో అడగండి',
+  },
+}
+
+export const FAQS: Faq[] = [
+  {
+    id: 'tarnish',
+    q: {
+      en: 'Does 1-gram gold jewellery tarnish or fade?',
+      te: '1 గ్రాము బంగారు ఆభరణాల రంగు పోతుందా లేదా నల్లబడతాయా?',
+    },
+    a: {
+      en: 'Our 1-gram gold pieces are micro gold plated over a copper-brass alloy and sealed with an anti-tarnish lacquer, so they keep a 22K-like glow for years with normal care. Keep them away from perfume, water and sweat, and store them in the pouch provided. If the colour ever dulls, our 1-Year Re-polishing Guarantee restores the shine.',
+      te: 'మా 1 గ్రాము బంగారు ఆభరణాలు రాగి-ఇత్తడి మిశ్రమంపై మైక్రో గోల్డ్ ప్లేటింగ్ మరియు యాంటీ-టార్నిష్ లక్కర్ పూతతో తయారవుతాయి. సరైన జాగ్రత్తతో ఏళ్ల తరబడి 22K బంగారు మెరుపు నిలిచి ఉంటుంది. పెర్ఫ్యూమ్, నీరు, చెమట నుండి దూరంగా ఉంచి, మేము ఇచ్చే పౌచ్‌లో భద్రపరచండి. రంగు తగ్గితే, మా 1 సంవత్సరం రీ-పాలిషింగ్ గ్యారంటీ ద్వారా మెరుపును తిరిగి తెస్తాము.',
+    },
+  },
+  {
+    id: 'shower',
+    q: {
+      en: 'Can I wear anti-tarnish jewellery daily, even in the shower?',
+      te: 'యాంటీ-టార్నిష్ ఆభరణాలను రోజూ, స్నానం చేసేటప్పుడు కూడా ధరించవచ్చా?',
+    },
+    a: {
+      en: 'Yes! Our anti-tarnish range is 316L surgical stainless steel with PVD (Physical Vapour Deposition) gold coating. The colour is bonded at a molecular level, so it is waterproof, sweat-proof and hypoallergenic — shower, gym and swim friendly. Just avoid harsh chemicals like bleach.',
+      te: 'అవును! మా యాంటీ-టార్నిష్ ఆభరణాలు 316L సర్జికల్ స్టెయిన్‌లెస్ స్టీల్‌పై PVD (ఫిజికల్ వేపర్ డిపాజిషన్) గోల్డ్ కోటింగ్‌తో తయారవుతాయి. రంగు లోహంలో కలిసిపోయి ఉంటుంది కాబట్టి ఇవి వాటర్‌ప్రూఫ్, చెమటకు చెడిపోవు, చర్మానికి హాని చేయవు — స్నానం, జిమ్, ఈత అన్నింటికీ సరే. బ్లీచ్ వంటి కఠిన రసాయనాలకు మాత్రం దూరంగా ఉంచండి.',
+    },
+  },
+  {
+    id: 'delivery',
+    q: {
+      en: 'How long does delivery take in AP & Telangana?',
+      te: 'ఆంధ్రప్రదేశ్ & తెలంగాణలో డెలివరీకి ఎంత సమయం పడుతుంది?',
+    },
+    a: {
+      en: 'Orders are dispatched within 24 hours by insured courier. Delivery takes 2–3 business days across Andhra Pradesh & Telangana (Hyderabad, Vijayawada, Vizag, Guntur, Warangal and more) and 4–7 business days for the rest of India. You get a WhatsApp tracking link as soon as it ships.',
+      te: 'ఆర్డర్‌లు 24 గంటల్లో ఇన్సూర్డ్ కొరియర్ ద్వారా పంపబడతాయి. ఆంధ్రప్రదేశ్ & తెలంగాణ (హైదరాబాద్, విజయవాడ, వైజాగ్, గుంటూరు, వరంగల్ మొదలైనవి) అంతటా 2–3 పని దినాల్లో, మిగతా భారతదేశానికి 4–7 పని దినాల్లో డెలివరీ అవుతుంది. షిప్ అయిన వెంటనే WhatsApp లో ట్రాకింగ్ లింక్ పంపిస్తాము.',
+    },
+  },
+  {
+    id: 'partial-cod',
+    q: {
+      en: 'What is Partial COD and why is ₹150 collected in advance?',
+      te: 'పార్షియల్ COD అంటే ఏమిటి? ₹150 ముందుగా ఎందుకు తీసుకుంటారు?',
+    },
+    a: {
+      en: 'Partial COD lets you reserve your piece by paying just ₹150 online now and the balance in cash/UPI to the courier on delivery. The small advance confirms genuine orders, stops fake bookings and lets us ship every parcel insured — which keeps prices low for everyone. The ₹150 is fully adjusted in your bill.',
+      te: 'పార్షియల్ COD లో ఇప్పుడు కేవలం ₹150 ఆన్‌లైన్‌లో చెల్లించి మీ ఆభరణాన్ని రిజర్వ్ చేసుకోవచ్చు, మిగిలిన మొత్తాన్ని డెలివరీ సమయంలో కొరియర్‌కు క్యాష్/UPI ద్వారా చెల్లించవచ్చు. ఈ చిన్న అడ్వాన్స్ నిజమైన ఆర్డర్‌లను నిర్ధారిస్తుంది, నకిలీ బుకింగ్‌లను అరికడుతుంది, ప్రతి పార్సెల్‌ను ఇన్సూరెన్స్‌తో పంపడానికి సహాయపడుతుంది. ఈ ₹150 మీ మొత్తం బిల్లులో పూర్తిగా సర్దుబాటు అవుతుంది.',
+    },
+  },
+  {
+    id: 'returns',
+    q: {
+      en: 'What is your return & damage policy?',
+      te: 'రిటర్న్ & డ్యామేజ్ పాలసీ ఏమిటి?',
+    },
+    a: {
+      en: 'If your piece arrives damaged or incorrect, WhatsApp us within 48 hours of delivery with a continuous, unedited unboxing video — from the sealed parcel to the product. The unboxing video is mandatory; we replace or refund only with it. For hygiene reasons, earrings and nose pins are not returnable unless damaged.',
+      te: 'మీ ఆభరణం దెబ్బతిని లేదా తప్పుగా వస్తే, డెలివరీ అయిన 48 గంటల్లోపు సీల్ చేసిన పార్సెల్ తెరిచినప్పటి నుండి ఆభరణం వరకు ఎడిట్ చేయని నిరంతర అన్‌బాక్సింగ్ వీడియోతో WhatsApp లో మాకు తెలియజేయండి. అన్‌బాక్సింగ్ వీడియో తప్పనిసరి — అది ఉంటేనే రీప్లేస్‌మెంట్ లేదా రీఫండ్ ఇస్తాము. పరిశుభ్రత కారణంగా, దెబ్బతిన్నవి తప్ప చెవి పోగులు మరియు ముక్కు పుడకలు రిటర్న్ చేయబడవు.',
+    },
+  },
+  {
+    id: 'talk',
+    q: {
+      en: 'Can I talk to someone directly?',
+      te: 'నేరుగా ఎవరితోనైనా మాట్లాడవచ్చా?',
+    },
+    a: {
+      en: `Of course! Chat with our styling team on WhatsApp or call ${SITE.phoneDisplay} (${SITE.supportHours}). Send a photo of your saree or outfit and we'll suggest the perfect match.`,
+      te: `తప్పకుండా! మా స్టైలింగ్ టీమ్‌తో WhatsApp లో చాట్ చేయండి లేదా ${SITE.phoneDisplay} కు కాల్ చేయండి (ఉదయం 10 – రాత్రి 8, అన్ని రోజులు). మీ చీర లేదా డ్రెస్ ఫోటో పంపితే, సరిపోయే ఆభరణాన్ని సూచిస్తాము.`,
+    },
+  },
+]
