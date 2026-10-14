@@ -319,11 +319,5 @@ revoke all on function public.admin_bulk_insert_products(jsonb) from public, ano
 grant execute on function public.admin_bulk_insert_products(jsonb) to authenticated;
 
 -- -----------------------------------------------------------------------------
--- 6. OPTIONAL — auto-cancel unpaid orders and release their stock.
---    While payments are collected manually over WhatsApp/UPI, use a long window
---    so a customer who pays late is not cancelled before you mark them paid.
---    To enable: Database → Extensions → enable pg_cron, then run:
---
---    select cron.schedule('cancel-stale-orders', '0 * * * *',
---      $$select public.cancel_stale_pending_orders(interval '48 hours')$$);
+-- 6. Auto-cancel of unpaid orders lives in 003_auto_cancel_unpaid_orders.sql.
 -- -----------------------------------------------------------------------------
