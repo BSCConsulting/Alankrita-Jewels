@@ -30,8 +30,8 @@ function seed(): MockState {
 
   const products: Product[] = catalog.products.map((p, index) => {
     const media: ProductMedia[] = [
-      { id: uid(), product_id: p.id, media_type: 'image', url: `/placeholders/${p.slug}-1.svg`, is_thumbnail: true, display_order: 0 },
-      { id: uid(), product_id: p.id, media_type: 'image', url: `/placeholders/${p.slug}-2.svg`, is_thumbnail: false, display_order: 1 },
+      { id: uid(), product_id: p.id, media_type: 'image', url: `/products/${p.slug}-1.webp`, is_thumbnail: true, display_order: 0 },
+      { id: uid(), product_id: p.id, media_type: 'image', url: `/products/${p.slug}-2.webp`, is_thumbnail: false, display_order: 1 },
     ]
     if (p.reel) {
       media.push({ id: uid(), product_id: p.id, media_type: 'video_reel', url: catalog.sampleReelUrl, is_thumbnail: false, display_order: 2 })
