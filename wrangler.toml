@@ -21,7 +21,7 @@ VITE_FIREBASE_API_KEY = "AIzaSyAzg9XwASU3rFT9Dm_LLdkX4qCzP3dAb8U"
 VITE_FIREBASE_AUTH_DOMAIN = "alankrita-jewels.firebaseapp.com"
 VITE_FIREBASE_APP_ID = "1:286756095252:web:4af3add72eff612cc22e01"
 # Google Search Console → Add property (URL prefix) → HTML tag → paste only the content="…" value.
-# VITE_GOOGLE_SITE_VERIFICATION = ""
+VITE_GOOGLE_SITE_VERIFICATION = "W70k8iRWzrvmMqtVrAJ7H49hinoer9Aa8Ou-E4dKNR4"
 # Owner alerts on Telegram (new orders, refunds needed, server errors): set TELEGRAM_BOT_TOKEN and
 # TELEGRAM_CHAT_ID as encrypted secrets in the Cloudflare dashboard, never here.
 SHIPROCKET_PICKUP_LOCATION = "Primary"
