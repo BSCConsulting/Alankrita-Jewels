@@ -4,34 +4,64 @@ export type Lang = 'en' | 'te'
 
 export interface Faq {
   id: string
+  /** Short label for the suggestion chip. */
+  chip: Record<Lang, string>
   q: Record<Lang, string>
   a: Record<Lang, string>
 }
 
-export const CHAT_UI: Record<Lang, Record<'title' | 'status' | 'greeting' | 'faqHeading' | 'cta' | 'call' | 'askThis', string>> = {
+type ChatText =
+  | 'title'
+  | 'online'
+  | 'offline'
+  | 'greeting'
+  | 'suggestHeading'
+  | 'moreHeading'
+  | 'allDone'
+  | 'cta'
+  | 'call'
+  | 'askThis'
+  | 'teaser'
+  | 'hours'
+  | 'typing'
+
+export const CHAT_UI: Record<Lang, Record<ChatText, string>> = {
   en: {
     title: 'Alankrita Concierge',
-    status: 'Typically replies in 5 minutes',
-    greeting: 'Namaste! 🙏 Quick answers below — or chat with our stylists on WhatsApp.',
-    faqHeading: 'Frequently asked',
+    online: 'Online now · replies in ~5 min',
+    offline: 'Back at 10 AM · leave us a message',
+    greeting: 'Namaste! 🙏 I can answer the most common questions instantly. Tap one below, or chat with our stylists on WhatsApp.',
+    suggestHeading: 'Ask me about',
+    moreHeading: 'Anything else?',
+    allDone: 'That covers our quick answers. For anything else, our stylists are a WhatsApp message away.',
     cta: 'Chat on WhatsApp',
     call: 'Call',
     askThis: 'Ask this on WhatsApp',
+    teaser: 'Questions about a piece? Ask us here.',
+    hours: `${SITE.phoneDisplay} · ${SITE.supportHours}`,
+    typing: 'Typing',
   },
   te: {
     title: 'అలంకృత సహాయకులు',
-    status: 'సాధారణంగా 5 నిమిషాల్లో సమాధానం',
-    greeting: 'నమస్తే! 🙏 కింద త్వరిత సమాధానాలు ఉన్నాయి — లేదా WhatsApp లో మా స్టైలిస్ట్‌లతో మాట్లాడండి.',
-    faqHeading: 'తరచుగా అడిగే ప్రశ్నలు',
+    online: 'ఇప్పుడు ఆన్‌లైన్ · ~5 నిమిషాల్లో సమాధానం',
+    offline: 'ఉదయం 10 గంటలకు తిరిగి వస్తాము · మెసేజ్ పెట్టండి',
+    greeting: 'నమస్తే! 🙏 తరచుగా అడిగే ప్రశ్నలకు వెంటనే సమాధానం ఇస్తాను. కింద ఒకటి ఎంచుకోండి, లేదా WhatsApp లో మా స్టైలిస్ట్‌లతో మాట్లాడండి.',
+    suggestHeading: 'వీటి గురించి అడగండి',
+    moreHeading: 'ఇంకా ఏమైనా?',
+    allDone: 'త్వరిత సమాధానాలు ఇవే. ఇంకేమైనా కావాలంటే WhatsApp లో మా స్టైలిస్ట్‌లను అడగండి.',
     cta: 'WhatsApp లో చాట్ చేయండి',
     call: 'కాల్',
     askThis: 'ఈ ప్రశ్నను WhatsApp లో అడగండి',
+    teaser: 'ఆభరణాల గురించి సందేహాలా? ఇక్కడ అడగండి.',
+    hours: `${SITE.phoneDisplay} · ఉదయం 10 – రాత్రి 8, అన్ని రోజులు`,
+    typing: 'టైప్ చేస్తున్నారు',
   },
 }
 
 export const FAQS: Faq[] = [
   {
     id: 'tarnish',
+    chip: { en: 'Will it tarnish?', te: 'రంగు పోతుందా?' },
     q: {
       en: 'Does 1-gram gold jewellery tarnish or fade?',
       te: '1 గ్రాము బంగారు ఆభరణాల రంగు పోతుందా లేదా నల్లబడతాయా?',
@@ -43,6 +73,7 @@ export const FAQS: Faq[] = [
   },
   {
     id: 'shower',
+    chip: { en: 'Waterproof for daily wear?', te: 'రోజూ ధరించవచ్చా?' },
     q: {
       en: 'Can I wear anti-tarnish jewellery daily, even in the shower?',
       te: 'యాంటీ-టార్నిష్ ఆభరణాలను రోజూ, స్నానం చేసేటప్పుడు కూడా ధరించవచ్చా?',
@@ -54,6 +85,7 @@ export const FAQS: Faq[] = [
   },
   {
     id: 'delivery',
+    chip: { en: 'Delivery time', te: 'డెలివరీ సమయం' },
     q: {
       en: 'How long does delivery take in AP & Telangana?',
       te: 'ఆంధ్రప్రదేశ్ & తెలంగాణలో డెలివరీకి ఎంత సమయం పడుతుంది?',
@@ -65,6 +97,7 @@ export const FAQS: Faq[] = [
   },
   {
     id: 'partial-cod',
+    chip: { en: 'Partial COD', te: 'పార్షియల్ COD' },
     q: {
       en: 'What is Partial COD and why is ₹150 collected in advance?',
       te: 'పార్షియల్ COD అంటే ఏమిటి? ₹150 ముందుగా ఎందుకు తీసుకుంటారు?',
@@ -76,6 +109,7 @@ export const FAQS: Faq[] = [
   },
   {
     id: 'returns',
+    chip: { en: 'Returns & damage', te: 'రిటర్న్ & డ్యామేజ్' },
     q: {
       en: 'What is your return & damage policy?',
       te: 'రిటర్న్ & డ్యామేజ్ పాలసీ ఏమిటి?',
@@ -87,6 +121,7 @@ export const FAQS: Faq[] = [
   },
   {
     id: 'talk',
+    chip: { en: 'Talk to a stylist', te: 'స్టైలిస్ట్‌తో మాట్లాడాలి' },
     q: {
       en: 'Can I talk to someone directly?',
       te: 'నేరుగా ఎవరితోనైనా మాట్లాడవచ్చా?',

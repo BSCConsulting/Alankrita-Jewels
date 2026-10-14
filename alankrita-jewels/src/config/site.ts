@@ -8,6 +8,9 @@ export const SITE = {
   phoneE164: '+919032654111',
   whatsappNumber: '919032654111',
   supportHours: '10 AM – 8 PM, all days',
+  /** Same window as supportHours, in 24h IST, for the chat "online" indicator. */
+  supportOpenHour: 10,
+  supportCloseHour: 20,
   defaultUrl: 'https://alankritajewels.in',
   serviceCities: ['Hyderabad', 'Vijayawada', 'Visakhapatnam', 'Guntur', 'Warangal', 'Tirupati', 'Nellore', 'Kakinada'],
 } as const
