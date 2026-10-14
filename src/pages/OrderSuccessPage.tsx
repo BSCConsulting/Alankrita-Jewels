@@ -3,6 +3,7 @@ import { CheckCircle2, Clock, PackageCheck, Truck, Video, XCircle } from 'lucide
 import { Skeleton } from '@/components/ui/Skeleton'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { useAsync } from '@/hooks/useAsync'
+import { PAYMENT_RULES } from '@/config/site'
 import { formatINR } from '@/lib/format'
 import { useSeo } from '@/lib/seo'
 import { whatsappLink } from '@/lib/whatsapp'
@@ -68,6 +69,7 @@ export default function OrderSuccessPage() {
               : 'Pay by any UPI app (GPay, PhonePe, Paytm).'}{' '}
             Tap below to message us on WhatsApp — we'll reply with our UPI details and confirm your order as soon as payment arrives.
           </p>
+          <p className="mt-2 text-xs text-amber-900/80">Unpaid orders are cancelled automatically after {PAYMENT_RULES.unpaidHoldHours} hours.</p>
           <a
             href={whatsappLink(
               `Hi Alankrita Jewels, I placed order ${orderNumber} and would like to pay ${formatINR(dueNow)} by UPI. Please share the payment details.`,

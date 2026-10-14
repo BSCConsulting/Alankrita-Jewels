@@ -16,14 +16,16 @@ export const SITE = {
 export const BUSINESS: { legalName: string; address: string; gstin: string; email: string; grievanceOfficer: string } = {
   legalName: 'Alankrita Jewels',
   address: '',
-  gstin: '',
-  email: '',
-  grievanceOfficer: '',
+  gstin: '36ABAFB0544P1ZE',
+  email: 'bsc.consulting123@gmail.com',
+  grievanceOfficer: 'Lakshmi · +91 90326 54111',
 }
 
 export const PAYMENT_RULES = {
   prepaidDiscountRate: 0.05,
   partialCodAdvance: 150,
+  /** Matches the cancel-stale-orders cron in supabase/migrations/003_auto_cancel_unpaid_orders.sql. */
+  unpaidHoldHours: 48,
 } as const
 
 /** Category slugs with hand-tuned landing pages. */

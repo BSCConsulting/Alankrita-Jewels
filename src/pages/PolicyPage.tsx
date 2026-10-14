@@ -86,7 +86,7 @@ const POLICIES: Record<string, Policy> = {
       },
       {
         heading: 'Refund timeline',
-        body: <p>Approved refunds are sent to the original payment method or UPI ID within 5–7 business days. Your bank may take a few more days to show the credit.</p>,
+        body: <p>Approved refunds are sent to the original payment method or UPI ID within 1–2 business days. Your bank may take a few more days to show the credit.</p>,
       },
       {
         heading: '1-Year Re-polishing Guarantee',
@@ -165,7 +165,12 @@ const POLICIES: Record<string, Policy> = {
       },
       {
         heading: 'Availability',
-        body: <p>Stock is reserved when you place an order. If a piece becomes unavailable after you pay, we will contact you and offer an alternative or a full refund.</p>,
+        body: (
+          <p>
+            Stock is reserved when you place an order. Orders not paid within {PAYMENT_RULES.unpaidHoldHours} hours are cancelled automatically and the
+            pieces are released. If a piece becomes unavailable after you pay, we will contact you and offer an alternative or a full refund.
+          </p>
+        ),
       },
       {
         heading: 'Shipping, returns and privacy',
