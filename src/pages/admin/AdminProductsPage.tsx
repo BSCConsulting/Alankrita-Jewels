@@ -108,11 +108,15 @@ export default function AdminProductsPage() {
                 </td>
                 <td className="px-4 py-3">
                   <input
+                    key={p.stock_count}
                     type="number"
                     min={0}
+                    step={1}
+                    inputMode="numeric"
                     defaultValue={p.stock_count}
                     onBlur={(e) => {
-                      const v = Math.max(0, Number(e.target.value) || 0)
+                      const v = Math.max(0, Math.floor(Number(e.target.value) || 0))
+                      e.target.value = String(v)
                       if (v !== p.stock_count) void patch(p, { stock_count: v, in_stock: v > 0 })
                     }}
                     className="w-20 rounded-md border border-slate-200 px-2 py-1"

@@ -7,7 +7,7 @@ import { createDelhiveryShipment, createShiprocketOrder } from '@/integrations/l
 import { sendTrackingNotification } from '@/integrations/whatsappNotify'
 import { cn, formatDate, formatINR } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
-import { listOrders, updateOrder } from '@/services/admin'
+import { listOrders, ORDER_TRANSITIONS, updateOrder } from '@/services/admin'
 import { amountDueNow } from '@/services/orders'
 import { useAdminStore } from '@/stores/useAdminStore'
 import { ORDER_STATUSES, PAYMENT_MODES, PAYMENT_STATUSES, type Order, type OrderStatus, type PaymentStatus } from '@/types'
@@ -40,6 +40,9 @@ export default function OrdersPage() {
     return () => clearTimeout(t)
   }, [search, filters.search, setFilter])
 
+  const filtersActive =
+    filters.paymentStatus !== 'ALL' || filters.orderStatus !== 'ALL' || filters.paymentMode !== 'ALL' || filters.search.trim() !== ''
+
   const replace = (o: Order) => setOrders((list) => list.map((x) => (x.id === o.id ? { ...x, ...o } : x)))
 
   const run = async (key: string, fn: () => Promise<void>) => {
@@ -56,13 +59,19 @@ export default function OrdersPage() {
   const ship = (order: Order, provider: 'SHIPROCKET' | 'DELHIVERY') =>
     run(`${order.id}:${provider}`, async () => {
       const shipment = provider === 'SHIPROCKET' ? await createShiprocketOrder(order) : await createDelhiveryShipment(order)
-      const updated = await updateOrder(order.id, {
+      const patch = {
         shipping_provider: shipment.provider,
         awb_number: shipment.awb,
         tracking_url: shipment.trackingUrl,
-        order_status: 'DISPATCHED',
-      })
-      replace(updated)
+        order_status: 'DISPATCHED' as const,
+      }
+      try {
+        replace(await updateOrder(order.id, patch))
+      } catch (e) {
+        // The courier already has the shipment: keep the AWB on screen so it is not booked twice.
+        replace({ ...order, ...patch })
+        throw new Error(`AWB ${shipment.awb} was created with ${label(provider)} but could not be saved (${toErrorMessage(e)}). Note it down before refreshing.`)
+      }
       toast.success(`${label(provider)} AWB ${shipment.awb} generated${shipment.mock ? ' (mock)' : ''}`)
     })
 
@@ -70,14 +79,19 @@ export default function OrdersPage() {
     // Open the tab synchronously so popup blockers allow the wa.me fallback after the await.
     const fallbackTab = window.open('', '_blank')
     return run(`${order.id}:WA`, async () => {
-      const result = await sendTrackingNotification(order)
-      if (result.sent) {
+      try {
+        const result = await sendTrackingNotification(order)
+        if (result.sent) {
+          fallbackTab?.close()
+          toast.success(`Tracking sent to ${order.customer_phone} via WhatsApp`)
+        } else if (fallbackTab) {
+          fallbackTab.location.href = result.waLink
+        } else {
+          window.location.href = result.waLink
+        }
+      } catch (e) {
         fallbackTab?.close()
-        toast.success(`Tracking sent to ${order.customer_phone} via WhatsApp`)
-      } else if (fallbackTab) {
-        fallbackTab.location.href = result.waLink
-      } else {
-        window.location.href = result.waLink
+        throw e
       }
     })
   }
@@ -141,9 +155,9 @@ export default function OrdersPage() {
       </div>
 
       {error && <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error.message}</p>}
-      {!loading && !orders.length && (
+      {!loading && !error && !orders.length && (
         <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
-          No orders yet. Place a test order from the storefront to see it here.
+          {filtersActive ? 'No orders match these filters.' : 'No orders yet. Place a test order from the storefront to see it here.'}
         </p>
       )}
 
@@ -192,7 +206,17 @@ function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid }: O
   const [open, setOpen] = useState(false)
   const unpaid = o.payment_status === 'PENDING' || o.payment_status === 'FAILED'
   const cancelled = o.order_status === 'CANCELLED'
-  const shipBlocked = unpaid ? 'Payment not received yet' : cancelled ? 'Order is cancelled' : o.awb_number ? 'AWB already generated' : null
+  const payable = unpaid && (o.order_status === 'PLACED' || o.order_status === 'CONFIRMED')
+  const nextStatuses = ORDER_TRANSITIONS[o.order_status].filter((s) => !(unpaid && s === 'DISPATCHED'))
+  const shipBlocked = cancelled
+    ? 'Order is cancelled'
+    : unpaid
+      ? 'Payment not received yet'
+      : o.awb_number
+        ? 'AWB already generated'
+        : !ORDER_TRANSITIONS[o.order_status].includes('DISPATCHED')
+          ? `Order is already ${label(o.order_status).toLowerCase()}`
+          : null
   const isBusy = (k: string) => busy === `${o.id}:${k}`
 
   return (
@@ -236,13 +260,13 @@ function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid }: O
           <select
             value={o.order_status}
             onChange={(e) => onStatus(o, e.target.value as OrderStatus)}
-            disabled={isBusy('STATUS')}
-            className="mt-2 w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs"
+            disabled={isBusy('STATUS') || !nextStatuses.length}
+            className="mt-2 w-full rounded-md border border-slate-200 px-2 py-2 text-xs disabled:bg-slate-50 disabled:text-slate-500"
             aria-label="Order status"
           >
-            {ORDER_STATUSES.map((s) => (
+            {[o.order_status, ...nextStatuses].map((s) => (
               <option key={s} value={s}>
-                {label(s)}
+                {s === o.order_status ? label(s) : `Move to: ${label(s)}`}
               </option>
             ))}
           </select>
@@ -254,7 +278,7 @@ function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid }: O
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-slate-100 px-4 py-3">
-        {unpaid && !cancelled && (
+        {payable && (
           <ActionButton
             onClick={() => onMarkPaid(o)}
             disabled={false}

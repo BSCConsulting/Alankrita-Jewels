@@ -39,10 +39,14 @@ const CLOCK_SKEW = 60
 // ---------------------------------------------------------------------------
 
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'
-let googleKeys: { keys: Map<string, CryptoKey>; expiresAt: number } | null = null
+const JWKS_MIN_REFETCH_MS = 60_000
+let googleKeys: { keys: Map<string, CryptoKey>; expiresAt: number; fetchedAt: number } | null = null
 
 async function googleKey(kid: string): Promise<CryptoKey | undefined> {
-  if (!googleKeys || googleKeys.expiresAt < Date.now() || !googleKeys.keys.has(kid)) {
+  const unknownKid = googleKeys && !googleKeys.keys.has(kid)
+  // Forged tokens with random kids must not trigger a Google fetch on every request.
+  const canRefetch = !googleKeys || Date.now() - googleKeys.fetchedAt > JWKS_MIN_REFETCH_MS
+  if (!googleKeys || googleKeys.expiresAt < Date.now() || (unknownKid && canRefetch)) {
     const res = await fetch(GOOGLE_JWKS_URL)
     if (!res.ok) throw new Error(`Could not fetch Google signing keys (${res.status})`)
     const { keys } = (await res.json()) as { keys: Array<{ kid: string; n: string; e: string }> }
@@ -56,7 +60,7 @@ async function googleKey(kid: string): Promise<CryptoKey | undefined> {
         ]),
       )
     }
-    googleKeys = { keys: imported, expiresAt: Date.now() + maxAge * 1000 }
+    googleKeys = { keys: imported, expiresAt: Date.now() + maxAge * 1000, fetchedAt: Date.now() }
   }
   return googleKeys.keys.get(kid)
 }

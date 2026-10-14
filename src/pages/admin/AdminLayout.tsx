@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router'
 import { FileSpreadsheet, LayoutDashboard, Loader2, LogOut, Menu, Package, PlusCircle, ShoppingCart, X } from 'lucide-react'
-import { isSupabaseConfigured } from '@/lib/supabase'
+import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import { cn } from '@/lib/format'
 import { useSeo } from '@/lib/seo'
 import { adminSignOut, currentAdminEmail } from '@/services/admin'
@@ -23,6 +23,16 @@ export default function AdminLayout() {
 
   useEffect(() => {
     currentAdminEmail().then(setSession, () => setSession(null))
+    if (!supabase) return
+    // An expired or revoked session would otherwise leave the panel open while every save silently fails.
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') setSession(null)
+      else if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        // Supabase calls must not run inside this callback (it holds the auth lock).
+        setTimeout(() => currentAdminEmail().then(setSession, () => setSession(null)), 0)
+      }
+    })
+    return () => data.subscription.unsubscribe()
   }, [setSession])
 
   const shell = (children: ReactNode) => (
@@ -52,6 +62,22 @@ export default function AdminLayout() {
     </nav>
   )
 
+  const account = (
+    <div className="mt-auto border-t border-slate-200 p-3">
+      <p className="truncate px-3 pb-2 text-xs text-slate-500">{adminEmail}</p>
+      <button
+        onClick={async () => {
+          await adminSignOut()
+          setNavOpen(false)
+          setSession(null)
+        }}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
+      >
+        <LogOut className="size-4" /> Sign out
+      </button>
+    </div>
+  )
+
   return shell(
     <div className="flex min-h-screen">
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
@@ -60,38 +86,28 @@ export default function AdminLayout() {
           <p className="text-xs text-slate-500">{isSupabaseConfigured ? 'Supabase connected' : 'Mock mode (local data)'}</p>
         </div>
         {sidebar}
-        <div className="mt-auto border-t border-slate-200 p-3">
-          <p className="truncate px-3 pb-2 text-xs text-slate-500">{adminEmail}</p>
-          <button
-            onClick={async () => {
-              await adminSignOut()
-              setSession(null)
-            }}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-100"
-          >
-            <LogOut className="size-4" /> Sign out
-          </button>
-        </div>
+        {account}
       </aside>
 
       {navOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setNavOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-64 bg-white shadow-xl">
+          <div className="absolute inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <p className="font-bold">Alankrita Admin</p>
-              <button onClick={() => setNavOpen(false)} aria-label="Close menu">
+              <button onClick={() => setNavOpen(false)} className="-m-2 p-2" aria-label="Close menu">
                 <X className="size-5" />
               </button>
             </div>
             {sidebar}
+            {account}
           </div>
         </div>
       )}
 
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
-          <button onClick={() => setNavOpen(true)} aria-label="Open menu">
+          <button onClick={() => setNavOpen(true)} className="-m-2 p-2" aria-label="Open menu">
             <Menu className="size-5" />
           </button>
           <p className="font-semibold">Alankrita Admin</p>

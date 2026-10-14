@@ -126,8 +126,9 @@ export default function BulkUploadPage() {
           const errors: string[] = []
           const categoryId = categoryBySlug.get(v.category_slug)
           if (!categoryId) errors.push(`unknown category_slug "${v.category_slug}"`)
-          if (slugs.has(slug)) errors.push(`slug "${slug}" already exists in the catalog`)
-          if (seen.has(slug)) errors.push(`duplicate slug "${slug}" in this file`)
+          if (!slug) errors.push('add an English title or a slug column (letters, numbers, hyphens)')
+          else if (slugs.has(slug)) errors.push(`slug "${slug}" already exists in the catalog`)
+          if (slug && seen.has(slug)) errors.push(`duplicate slug "${slug}" in this file`)
           seen.add(slug)
 
           return {
@@ -222,7 +223,15 @@ export default function BulkUploadPage() {
         <p className="text-xs text-slate-500">
           Required: {REQUIRED_COLUMNS.join(', ')} · Optional: {OPTIONAL_COLUMNS.join(', ')}
         </p>
-        <input type="file" accept=".csv,.xlsx" hidden onChange={(e) => void handleFile(e.target.files?.[0])} />
+        <input
+          type="file"
+          accept=".csv,.xlsx"
+          hidden
+          onChange={(e) => {
+            void handleFile(e.target.files?.[0])
+            e.currentTarget.value = ''
+          }}
+        />
       </label>
 
       {columnError && (
