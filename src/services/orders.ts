@@ -122,6 +122,19 @@ export async function markMockOrderPaid(orderId: string, gatewayRef: string): Pr
   commitMockDb()
 }
 
+/** The signed-in customer's orders, newest first. RLS limits rows to the customer's own orders. */
+export async function fetchMyOrders(phone: string | null): Promise<Order[]> {
+  if (!customerDb) {
+    await delay(150)
+    return mockDb()
+      .orders.filter((o) => o.customer_phone === phone)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  }
+  const { data, error } = await customerDb.from('orders').select(ORDER_SELECT).order('created_at', { ascending: false }).limit(50)
+  if (error) throw error
+  return (data ?? []).map(normalizeOrder)
+}
+
 export async function fetchOrderByNumber(orderNumber: string): Promise<Order | null> {
   if (!customerDb) {
     await delay(100)

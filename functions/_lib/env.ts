@@ -25,6 +25,10 @@ export interface Env {
   WHATSAPP_TOKEN?: string
   WHATSAPP_PHONE_NUMBER_ID?: string
   WHATSAPP_TRACKING_TEMPLATE?: string
+
+  /** Store-owner alerts (new orders, refunds needed, server errors). Bot from @BotFather; chat id of the owner or a group. */
+  TELEGRAM_BOT_TOKEN?: string
+  TELEGRAM_CHAT_ID?: string
 }
 
 export const siteUrl = (env: Env, request: Request) => (env.SITE_URL ?? new URL(request.url).origin).replace(/\/$/, '')

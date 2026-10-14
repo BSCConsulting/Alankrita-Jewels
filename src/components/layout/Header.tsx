@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router'
-import { Menu, Phone, ShoppingBag, X } from 'lucide-react'
+import { Menu, Package, Phone, Search, ShoppingBag, X } from 'lucide-react'
 import { COLLECTION_SLUGS, SITE } from '@/config/site'
 import { cn } from '@/lib/format'
 import { useCartCount, useCartStore } from '@/stores/useCartStore'
 import { Overlay } from '@/components/ui/Overlay'
+import { SearchOverlay } from './SearchOverlay'
 import { ThemeToggle } from './ThemeToggle'
 
 export const NAV_LINKS = [
@@ -19,6 +20,7 @@ export const NAV_LINKS = [
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const count = useCartCount()
   const openCart = useCartStore((s) => s.open)
 
@@ -65,6 +67,12 @@ export function Header() {
             <a href={`tel:${SITE.phoneE164}`} className="hidden items-center gap-1.5 p-2 text-sm text-ink-muted hover:text-primary xl:flex">
               <Phone className="size-4" /> {SITE.phoneDisplay}
             </a>
+            <Link to="/orders" className="hidden p-2 hover:text-primary sm:block" aria-label="My orders" title="My orders">
+              <Package className="size-6" />
+            </Link>
+            <button onClick={() => setSearchOpen(true)} className="p-2 hover:text-primary" aria-label="Search jewellery">
+              <Search className="size-6" />
+            </button>
             <button onClick={openCart} className="relative p-2" aria-label={`Open bag, ${count} items`}>
               <ShoppingBag className="size-6" />
               {count > 0 && (
@@ -78,6 +86,8 @@ export function Header() {
 
         <ThemeToggle className="absolute bottom-0 left-1/2 z-10 hidden -translate-x-1/2 translate-y-1/2 md:flex" />
       </div>
+
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <Overlay open={menuOpen} onClose={() => setMenuOpen(false)} label="Menu" placement="right">
         <div className="flex h-full flex-col bg-bg">
@@ -102,6 +112,18 @@ export function Header() {
               </Link>
             ))}
           </nav>
+          <Link
+            to="/orders"
+            onClick={() => setMenuOpen(false)}
+            className="mx-2 mb-2 flex items-center justify-between rounded-lg border-t border-line px-3 py-3.5 hover:bg-surface-muted"
+          >
+            <span className="flex items-center gap-2 font-medium">
+              <Package className="size-4" /> My orders
+            </span>
+            <span lang="te" className="text-sm text-ink-muted">
+              నా ఆర్డర్లు
+            </span>
+          </Link>
           <ThemeToggle className="mx-4 justify-center" />
           <a href={`tel:${SITE.phoneE164}`} className="ak-btn-outline m-4">
             <Phone className="size-4" /> Call {SITE.phoneDisplay}

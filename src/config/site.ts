@@ -15,10 +15,19 @@ export const SITE = {
   serviceCities: ['Hyderabad', 'Vijayawada', 'Visakhapatnam', 'Guntur', 'Warangal', 'Tirupati', 'Nellore', 'Kakinada'],
 } as const
 
+/** Registered address, structured for schema.org; BUSINESS.address is the display form. */
+export const BUSINESS_ADDRESS = {
+  street: '12-381, Sundarayya Nagar',
+  locality: 'Madhira',
+  district: 'Khammam',
+  region: 'Telangana',
+  postalCode: '507203',
+} as const
+
 /** Seller details shown on the Contact and policy pages (Consumer Protection (E-Commerce) Rules, 2020). Empty fields are hidden. */
 export const BUSINESS: { legalName: string; address: string; gstin: string; email: string; grievanceOfficer: string } = {
   legalName: 'Alankrita Jewels, a vertical of BSC Consulting',
-  address: '12-381, Sundarayya Nagar, Madhira, Khammam (Dt), Telangana – 507203',
+  address: `${BUSINESS_ADDRESS.street}, ${BUSINESS_ADDRESS.locality}, ${BUSINESS_ADDRESS.district} (Dt), ${BUSINESS_ADDRESS.region} – ${BUSINESS_ADDRESS.postalCode}`,
   gstin: '36ABAFB0544P1ZE',
   email: 'bsc.consulting123@gmail.com',
   grievanceOfficer: 'Lakshmi · +91 90326 54111',
