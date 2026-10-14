@@ -242,7 +242,7 @@ export async function listOrders(filters: OrderFilters): Promise<Order[]> {
 }
 
 export type OrderPatch = Partial<
-  Pick<Order, 'order_status' | 'payment_status' | 'shipping_provider' | 'awb_number' | 'tracking_url'>
+  Pick<Order, 'order_status' | 'payment_status' | 'advance_paid' | 'payment_gateway_ref' | 'shipping_provider' | 'awb_number' | 'tracking_url'>
 >
 
 export async function updateOrder(id: string, patch: OrderPatch): Promise<Order> {

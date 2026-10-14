@@ -12,6 +12,15 @@ export const SITE = {
   serviceCities: ['Hyderabad', 'Vijayawada', 'Visakhapatnam', 'Guntur', 'Warangal', 'Tirupati', 'Nellore', 'Kakinada'],
 } as const
 
+/** Seller details shown on the Contact and policy pages (Consumer Protection (E-Commerce) Rules, 2020). Empty fields are hidden. */
+export const BUSINESS: { legalName: string; address: string; gstin: string; email: string; grievanceOfficer: string } = {
+  legalName: 'Alankrita Jewels',
+  address: '',
+  gstin: '',
+  email: '',
+  grievanceOfficer: '',
+}
+
 export const PAYMENT_RULES = {
   prepaidDiscountRate: 0.05,
   partialCodAdvance: 150,

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ChevronDown, ExternalLink, Loader2, Phone, RefreshCw, Search, Send, Truck } from 'lucide-react'
+import { BadgeCheck, ChevronDown, ExternalLink, Loader2, Phone, RefreshCw, Search, Send, Truck } from 'lucide-react'
 import { toast } from '@/components/ui/Toaster'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { useAsync } from '@/hooks/useAsync'
@@ -8,6 +8,7 @@ import { sendTrackingNotification } from '@/integrations/whatsappNotify'
 import { cn, formatDate, formatINR } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
 import { listOrders, updateOrder } from '@/services/admin'
+import { amountDueNow } from '@/services/orders'
 import { useAdminStore } from '@/stores/useAdminStore'
 import { ORDER_STATUSES, PAYMENT_MODES, PAYMENT_STATUSES, type Order, type OrderStatus, type PaymentStatus } from '@/types'
 
@@ -81,6 +82,21 @@ export default function OrdersPage() {
     })
   }
 
+  const markPaid = (order: Order) =>
+    run(`${order.id}:PAID`, async () => {
+      const amount = amountDueNow(order)
+      if (!confirm(`Confirm you have received ${formatINR(amount)} for ${order.order_number}?`)) return
+      replace(
+        await updateOrder(order.id, {
+          payment_status: order.payment_mode === 'PARTIAL_COD' ? 'PARTIAL_PAID' : 'PAID',
+          advance_paid: amount,
+          payment_gateway_ref: order.payment_gateway_ref ?? 'manual_upi',
+          order_status: order.order_status === 'PLACED' ? 'CONFIRMED' : order.order_status,
+        }),
+      )
+      toast.success(`${order.order_number} marked as paid`)
+    })
+
   const setStatus = (order: Order, order_status: OrderStatus) =>
     run(`${order.id}:STATUS`, async () => {
       if (order_status === 'CANCELLED' && !confirm(`Cancel ${order.order_number}? Stock will be returned to inventory.`)) return
@@ -133,7 +149,7 @@ export default function OrdersPage() {
 
       <div className="space-y-3">
         {orders.map((o) => (
-          <OrderCard key={o.id} order={o} busy={busy} onShip={ship} onNotify={notify} onStatus={setStatus} />
+          <OrderCard key={o.id} order={o} busy={busy} onShip={ship} onNotify={notify} onStatus={setStatus} onMarkPaid={markPaid} />
         ))}
       </div>
     </div>
@@ -169,9 +185,10 @@ interface OrderCardProps {
   onShip: (o: Order, p: 'SHIPROCKET' | 'DELHIVERY') => void
   onNotify: (o: Order) => void
   onStatus: (o: Order, s: OrderStatus) => void
+  onMarkPaid: (o: Order) => void
 }
 
-function OrderCard({ order: o, busy, onShip, onNotify, onStatus }: OrderCardProps) {
+function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid }: OrderCardProps) {
   const [open, setOpen] = useState(false)
   const unpaid = o.payment_status === 'PENDING' || o.payment_status === 'FAILED'
   const cancelled = o.order_status === 'CANCELLED'
@@ -237,6 +254,18 @@ function OrderCard({ order: o, busy, onShip, onNotify, onStatus }: OrderCardProp
       </div>
 
       <div className="flex flex-wrap gap-2 border-t border-slate-100 px-4 py-3">
+        {unpaid && !cancelled && (
+          <ActionButton
+            onClick={() => onMarkPaid(o)}
+            disabled={false}
+            title="Use after confirming the UPI payment in your bank or UPI app"
+            busy={isBusy('PAID')}
+            icon={<BadgeCheck className="size-4" />}
+            className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+          >
+            Mark payment received ({formatINR(amountDueNow(o))})
+          </ActionButton>
+        )}
         <ActionButton onClick={() => onShip(o, 'SHIPROCKET')} disabled={!!shipBlocked} title={shipBlocked} busy={isBusy('SHIPROCKET')} icon={<Truck className="size-4" />}>
           Create Shiprocket Order / Generate AWB
         </ActionButton>

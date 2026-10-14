@@ -34,6 +34,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     { loc: '/', priority: '1.0' },
     ...categories.map((c) => ({ loc: pathFor(c), priority: '0.9' })),
     ...products.map((p) => ({ loc: `/product/${p.slug}`, priority: '0.8', lastmod: p.updated_at?.slice(0, 10) })),
+    ...['/contact', '/policies/shipping', '/policies/returns', '/policies/privacy', '/policies/terms'].map((loc) => ({ loc, priority: '0.3' })),
   ]
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

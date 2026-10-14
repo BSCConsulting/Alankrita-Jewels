@@ -5,6 +5,14 @@ import { whatsappLink } from '@/lib/whatsapp'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { NAV_LINKS } from './Header'
 
+const POLICY_LINKS = [
+  { to: '/contact', label: 'Contact us' },
+  { to: '/policies/shipping', label: 'Shipping' },
+  { to: '/policies/returns', label: 'Returns & damage' },
+  { to: '/policies/privacy', label: 'Privacy' },
+  { to: '/policies/terms', label: 'Terms' },
+]
+
 export function Footer() {
   return (
     <footer className="mt-20 bg-primary text-primary-ink">
@@ -74,8 +82,17 @@ export function Footer() {
           <p className="mt-4 text-xs opacity-70">{SITE.supportHours}</p>
         </div>
       </div>
-      <div className="border-t border-current/15 py-5 text-center text-xs opacity-70">
-        © {new Date().getFullYear()} {SITE.name}. Prices inclusive of GST. UPI · Partial COD.
+      <div className="border-t border-current/15 px-4 py-5 text-center text-xs">
+        <nav aria-label="Help and policies" className="flex flex-wrap justify-center gap-x-5 gap-y-1">
+          {POLICY_LINKS.map((l) => (
+            <Link key={l.to} to={l.to} className="inline-block py-1.5 opacity-90 hover:opacity-100 hover:underline">
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+        <p className="mt-3 opacity-70">
+          © {new Date().getFullYear()} {SITE.name}. Prices inclusive of GST. UPI · Partial COD.
+        </p>
       </div>
     </footer>
   )

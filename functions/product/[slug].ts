@@ -82,6 +82,11 @@ export const onRequestGet: PagesFunction<Env, 'slug'> = async ({ request, env, p
         el.setAttribute('content', 'product')
       },
     })
+    .on('meta[property^="og:title"], meta[property^="og:description"], meta[property^="og:image"], meta[name="twitter:card"]', {
+      element: (el) => {
+        el.remove()
+      },
+    })
     .on('head', {
       element: (el) => {
         el.append(

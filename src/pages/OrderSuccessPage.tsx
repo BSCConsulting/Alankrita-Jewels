@@ -1,12 +1,12 @@
 import { Link, useParams } from 'react-router'
-import { CheckCircle2, Clock, PackageCheck, Truck, Video } from 'lucide-react'
+import { CheckCircle2, Clock, PackageCheck, Truck, Video, XCircle } from 'lucide-react'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { useAsync } from '@/hooks/useAsync'
 import { formatINR } from '@/lib/format'
 import { useSeo } from '@/lib/seo'
 import { whatsappLink } from '@/lib/whatsapp'
-import { fetchOrderByNumber } from '@/services/orders'
+import { amountDueNow, fetchOrderByNumber } from '@/services/orders'
 
 const STEPS = [
   { icon: PackageCheck, title: 'Quality check & insured packing', body: 'Within 24 hours' },
@@ -19,20 +19,67 @@ export default function OrderSuccessPage() {
   useSeo({ title: `Order ${orderNumber}`, noindex: true })
   const { data: order, loading } = useAsync(() => fetchOrderByNumber(orderNumber), [orderNumber])
 
-  const isPaid = order && order.payment_status !== 'PENDING' && order.payment_status !== 'FAILED'
+  const cancelled = order?.order_status === 'CANCELLED'
+  const awaitingPayment = order?.payment_status === 'PENDING' && !cancelled
+  const dueNow = order ? amountDueNow(order) : 0
+
+  if (!loading && !order)
+    return (
+      <div className="mx-auto max-w-md px-4 py-24 text-center">
+        <h1 className="font-display text-3xl font-bold text-primary">Order not found</h1>
+        <p className="mt-3 text-ink-muted">
+          We couldn't find order <strong className="font-mono">{orderNumber}</strong> for this mobile number. Message us on WhatsApp and we'll help.
+        </p>
+        <a href={whatsappLink(`Hi Alankrita Jewels, I need help with order ${orderNumber}.`)} target="_blank" rel="noopener noreferrer" className="ak-btn-whatsapp mt-6 py-3.5">
+          <WhatsAppIcon className="size-5" /> Chat on WhatsApp
+        </a>
+      </div>
+    )
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       <div className="text-center">
-        <CheckCircle2 className="mx-auto size-16 text-emerald-600" />
-        <h1 className="mt-4 font-display text-4xl font-bold text-primary">Dhanyavaadalu!</h1>
+        {awaitingPayment ? (
+          <Clock className="mx-auto size-16 text-amber-600" />
+        ) : cancelled ? (
+          <XCircle className="mx-auto size-16 text-red-600" />
+        ) : (
+          <CheckCircle2 className="mx-auto size-16 text-emerald-600" />
+        )}
+        <h1 className="mt-4 font-display text-4xl font-bold text-primary">
+          {awaitingPayment ? 'Order received' : cancelled ? 'Order cancelled' : 'Dhanyavaadalu!'}
+        </h1>
         <p lang="te" className="text-lg text-ink-muted">
-          మీ ఆర్డర్ నిర్ధారించబడింది
+          {awaitingPayment ? 'మీ ఆర్డర్ అందింది' : cancelled ? 'ఈ ఆర్డర్ రద్దు చేయబడింది' : 'మీ ఆర్డర్ నిర్ధారించబడింది'}
         </p>
         <p className="mt-3">
-          Order <strong className="font-mono">{orderNumber}</strong> {isPaid || !order ? 'is confirmed.' : 'is awaiting payment confirmation.'}
+          Order <strong className="font-mono">{orderNumber}</strong>{' '}
+          {awaitingPayment ? 'will be confirmed once payment is received.' : cancelled ? 'has been cancelled.' : 'is confirmed.'}
         </p>
       </div>
+
+      {awaitingPayment && (
+        <div className="mt-8 rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 text-amber-950">
+          <p className="text-sm font-semibold tracking-wide uppercase">Complete your payment</p>
+          <p className="mt-1 text-3xl font-bold">{formatINR(dueNow)}</p>
+          <p className="mt-2 text-sm">
+            {order?.payment_mode === 'PARTIAL_COD'
+              ? `Pay the ${formatINR(dueNow)} advance by UPI to reserve your piece. The balance is paid to the courier on delivery.`
+              : 'Pay by any UPI app (GPay, PhonePe, Paytm).'}{' '}
+            Tap below to message us on WhatsApp — we'll reply with our UPI details and confirm your order as soon as payment arrives.
+          </p>
+          <a
+            href={whatsappLink(
+              `Hi Alankrita Jewels, I placed order ${orderNumber} and would like to pay ${formatINR(dueNow)} by UPI. Please share the payment details.`,
+            )}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ak-btn-whatsapp mt-4 w-full py-3.5"
+          >
+            <WhatsAppIcon className="size-5" /> Pay {formatINR(dueNow)} via WhatsApp
+          </a>
+        </div>
+      )}
 
       {loading && <Skeleton className="mt-8 h-48 w-full" />}
 
@@ -55,11 +102,13 @@ export default function OrderSuccessPage() {
               <dt>Order total</dt>
               <dd className="font-semibold">{formatINR(order.final_amount)}</dd>
             </div>
-            <div className="flex justify-between text-emerald-700">
-              <dt>Paid online</dt>
-              <dd>{formatINR(order.advance_paid)}</dd>
-            </div>
-            {order.balance_due_on_delivery > 0 && (
+            {order.advance_paid > 0 && (
+              <div className="flex justify-between text-emerald-700">
+                <dt>Paid</dt>
+                <dd>{formatINR(order.advance_paid)}</dd>
+              </div>
+            )}
+            {order.balance_due_on_delivery > 0 && !cancelled && (
               <div className="flex justify-between font-semibold">
                 <dt>Pay courier on delivery</dt>
                 <dd>{formatINR(order.balance_due_on_delivery)}</dd>
