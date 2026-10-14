@@ -21,8 +21,18 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (event.event !== 'payment.captured') return json({ ignored: event.event })
 
   const { id: paymentId, order_id: rzpOrderId } = event.payload.payment.entity
-  const [order] = await rest<OrderRow[]>(env, `orders?payment_gateway_ref=eq.${encodeURIComponent(rzpOrderId)}&select=*`)
-  if (order) await markOrderPaid(env, order, `${rzpOrderId}/${paymentId}`)
+  const [order] = await rest<OrderRow[]>(
+    env,
+    `orders?or=(payment_gateway_ref.eq.${encodeURIComponent(rzpOrderId)},payment_gateway_ref.like.${encodeURIComponent(`${rzpOrderId}/*`)})&select=*`,
+  )
+  if (!order) {
+    console.error(`Webhook: no order matches Razorpay order ${rzpOrderId} (payment ${paymentId})`)
+    return json({ ok: true, matched: false })
+  }
+  const alreadyPaid = order.payment_status === 'PAID' || order.payment_status === 'PARTIAL_PAID'
+  if (!alreadyPaid && !(await markOrderPaid(env, order, `${rzpOrderId}/${paymentId}`))) {
+    console.error(`REFUND NEEDED: payment ${paymentId} captured for unpayable order ${order.order_number}`)
+  }
 
   return json({ ok: true })
 }

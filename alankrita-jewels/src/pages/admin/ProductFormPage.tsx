@@ -60,8 +60,13 @@ interface ImageDraft {
 }
 type ReelDraft = { url: string; file?: File } | null
 
+/** Keyed by id so moving from "edit" to "add product" starts from a clean form. */
 export default function ProductFormPage() {
   const { id } = useParams()
+  return <ProductForm key={id ?? 'new'} id={id} />
+}
+
+function ProductForm({ id }: { id?: string }) {
   const navigate = useNavigate()
   const isEdit = Boolean(id)
   const { data: categories } = useAsync(categoriesForSelect, [])
@@ -139,11 +144,11 @@ export default function ProductFormPage() {
   }
 
   const removeImage = (key: string) => {
-    setImages((list) => {
-      const next = list.filter((i) => i.key !== key)
-      if (thumbKey === key) setThumbKey(next[0]?.key ?? null)
-      return next
-    })
+    const removed = images.find((i) => i.key === key)
+    if (removed?.file) URL.revokeObjectURL(removed.url)
+    const next = images.filter((i) => i.key !== key)
+    setImages(next)
+    if (thumbKey === key) setThumbKey(next[0]?.key ?? null)
   }
 
   const onReelFile = async (file: File | undefined) => {
@@ -151,7 +156,7 @@ export default function ProductFormPage() {
     if (file.size > MAX_REEL_MB * 1024 * 1024) return setMediaError(`Reel must be under ${MAX_REEL_MB} MB`)
     try {
       const seconds = await videoDuration(file)
-      if (seconds < 3 || seconds > 15) return setMediaError(`Reel is ${seconds.toFixed(1)}s — keep it between 5 and 10 seconds.`)
+      if (seconds < 3 || seconds > 15) return setMediaError(`Reel is ${seconds.toFixed(1)}s — it must be 3 to 15 seconds long (5–10 works best).`)
       setReel({ url: URL.createObjectURL(file), file })
       setMediaError(null)
     } catch (e) {
@@ -166,11 +171,21 @@ export default function ProductFormPage() {
     if (!images.length) return setMediaError('Add at least one product image')
     try {
       const uploadedImages = await Promise.all(
-        images.map(async (img) => ({ ...img, url: img.file ? await uploadMedia(img.file, 'image') : img.url })),
+        images.map(async (img) => (img.file ? { key: img.key, url: await uploadMedia(img.file, 'image') } : img)),
       )
+      // Keep the uploaded URLs so a retry after a failed save does not upload the same files again.
+      images.forEach((img) => img.file && URL.revokeObjectURL(img.url))
+      setImages(uploadedImages)
+      let reelUrl = reel?.url
+      if (reel?.file) {
+        reelUrl = await uploadMedia(reel.file, 'video_reel')
+        URL.revokeObjectURL(reel.url)
+        setReel({ url: reelUrl })
+      }
+
       const ordered = [...uploadedImages].sort((a, b) => Number(b.key === thumbKey) - Number(a.key === thumbKey))
       const media: MediaInput[] = ordered.map((img, i) => ({ media_type: 'image', url: img.url, is_thumbnail: i === 0 }))
-      if (reel) media.push({ media_type: 'video_reel', url: reel.file ? await uploadMedia(reel.file, 'video_reel') : reel.url, is_thumbnail: false })
+      if (reelUrl) media.push({ media_type: 'video_reel', url: reelUrl, is_thumbnail: false })
 
       await saveProduct(
         {
@@ -192,6 +207,16 @@ export default function ProductFormPage() {
   })
 
   if (isEdit && loadingExisting) return <Loader2 className="mx-auto mt-20 size-8 animate-spin text-slate-400" />
+  if (isEdit && !existing) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">
+        This product could not be found. It may have been deleted.
+        <button type="button" onClick={() => navigate('/admin/products')} className="mt-4 block w-full font-semibold text-slate-900 underline">
+          Back to products
+        </button>
+      </div>
+    )
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-6" noValidate>
@@ -245,7 +270,17 @@ export default function ProductFormPage() {
               <ImagePlus className="size-8 text-slate-400" />
               <p className="text-sm font-medium">Drop product photos or click to browse</p>
               <p className="text-xs text-slate-500">JPG / PNG / WebP · auto-resized to 1400px WebP before upload</p>
-              <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={(e) => e.target.files && addFiles(e.target.files)} />
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => {
+                  if (e.target.files) addFiles(e.target.files)
+                  e.currentTarget.value = ''
+                }}
+              />
             </div>
 
             {images.length > 0 && (
@@ -254,11 +289,17 @@ export default function ProductFormPage() {
                   <div key={img.key} className={cn('group relative overflow-hidden rounded-lg border-2', img.key === thumbKey ? 'border-amber-500' : 'border-transparent')}>
                     <img src={img.url} alt="" className="aspect-square w-full object-cover" />
                     <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/50 p-1">
-                      <button type="button" onClick={() => setThumbKey(img.key)} className="rounded p-1 text-white" title="Set as thumbnail">
-                        <Star className={cn('size-4', img.key === thumbKey && 'fill-amber-400 text-amber-400')} />
+                      <button
+                        type="button"
+                        onClick={() => setThumbKey(img.key)}
+                        className="rounded p-2 text-white hover:bg-white/20"
+                        title="Set as thumbnail"
+                        aria-label="Set as thumbnail"
+                      >
+                        <Star className={cn('size-5', img.key === thumbKey && 'fill-amber-400 text-amber-400')} />
                       </button>
-                      <button type="button" onClick={() => removeImage(img.key)} className="rounded p-1 text-white" title="Remove">
-                        <Trash2 className="size-4" />
+                      <button type="button" onClick={() => removeImage(img.key)} className="rounded p-2 text-white hover:bg-white/20" title="Remove" aria-label="Remove image">
+                        <Trash2 className="size-5" />
                       </button>
                     </div>
                   </div>
@@ -284,7 +325,15 @@ export default function ProductFormPage() {
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-slate-300 px-3 py-3 text-sm hover:border-slate-400">
                     <Film className="size-4" /> Upload MP4 / MOV
-                    <input type="file" accept="video/mp4,video/webm,video/quicktime" hidden onChange={(e) => onReelFile(e.target.files?.[0])} />
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime"
+                      hidden
+                      onChange={(e) => {
+                        onReelFile(e.target.files?.[0])
+                        e.currentTarget.value = ''
+                      }}
+                    />
                   </label>
                   <div className="flex gap-2">
                     <input

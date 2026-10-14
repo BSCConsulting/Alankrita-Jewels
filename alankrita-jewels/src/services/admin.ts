@@ -38,6 +38,16 @@ export async function adminSignOut() {
   await supabase?.auth.signOut()
 }
 
+const SESSION_EXPIRED = 'Your admin session has expired. Please sign in again.'
+
+/** RLS turns writes by a signed-out user into silent no-ops; surface them instead of reporting success. */
+function assertWritten(rows: unknown[] | null) {
+  if (!rows?.length) throw new Error(SESSION_EXPIRED)
+}
+
+/** True when an RPC from migration 002 has not been installed yet. */
+const isMissingRpc = (error: { code?: string } | null) => error?.code === 'PGRST202'
+
 // ---------------------------------------------------------------------------
 // Media upload
 // ---------------------------------------------------------------------------
@@ -119,11 +129,20 @@ export async function saveProduct(input: ProductInput, media: MediaInput[], id?:
     return productId
   }
 
+  const { data: savedId, error: rpcError } = await supabase.rpc('admin_save_product', {
+    p_id: id ?? null,
+    p_product: input,
+    p_media: ordered,
+  })
+  if (!rpcError) return savedId as string
+  if (!isMissingRpc(rpcError)) throw rpcError
+
   const { data, error } = id
-    ? await supabase.from('products').update(input).eq('id', id).select('id').single()
-    : await supabase.from('products').insert(input).select('id').single()
+    ? await supabase.from('products').update(input).eq('id', id).select('id')
+    : await supabase.from('products').insert(input).select('id')
   if (error) throw error
-  const productId = data.id as string
+  assertWritten(data)
+  const productId = data[0].id as string
 
   const { error: delError } = await supabase.from('product_media').delete().eq('product_id', productId)
   if (delError) throw delError
@@ -143,8 +162,9 @@ export async function updateProductFlags(id: string, patch: Partial<Pick<Product
     commitMockDb()
     return
   }
-  const { error } = await supabase.from('products').update(patch).eq('id', id)
+  const { data, error } = await supabase.from('products').update(patch).eq('id', id).select('id')
   if (error) throw error
+  assertWritten(data)
 }
 
 export async function deleteProduct(id: string) {
@@ -154,8 +174,9 @@ export async function deleteProduct(id: string) {
     commitMockDb()
     return
   }
-  const { error } = await supabase.from('products').delete().eq('id', id)
+  const { data, error } = await supabase.from('products').delete().eq('id', id).select('id')
   if (error) throw error
+  assertWritten(data)
 }
 
 export async function existingSlugs(): Promise<Set<string>> {
@@ -171,7 +192,7 @@ export interface BulkProductRow {
   reelUrl: string | null
 }
 
-/** Inserts validated CSV rows. Products go in one batch; media rows follow in a second batch. */
+/** Inserts validated CSV rows in a single transaction: either every row is imported or none is. */
 export async function bulkInsertProducts(rows: BulkProductRow[]): Promise<number> {
   const toMedia = (r: BulkProductRow): MediaInput[] => [
     ...r.imageUrls.map((url, i) => ({ media_type: 'image' as const, url, is_thumbnail: i === 0 })),
@@ -182,6 +203,12 @@ export async function bulkInsertProducts(rows: BulkProductRow[]): Promise<number
     for (const r of rows) await saveProduct(r.product, toMedia(r))
     return rows.length
   }
+
+  const { data: count, error: rpcError } = await supabase.rpc('admin_bulk_insert_products', {
+    p_rows: rows.map((r) => ({ product: r.product, media: toMedia(r).map((m, i) => ({ ...m, display_order: i })) })),
+  })
+  if (!rpcError) return count as number
+  if (!isMissingRpc(rpcError)) throw rpcError
 
   const { data, error } = await supabase
     .from('products')
@@ -241,6 +268,15 @@ export async function listOrders(filters: OrderFilters): Promise<Order[]> {
   return (data ?? []).map(normalizeOrder)
 }
 
+/** Status changes an admin may make; mirrors the orders_guard_status trigger in migration 002. */
+export const ORDER_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  PLACED: ['CONFIRMED', 'DISPATCHED', 'CANCELLED'],
+  CONFIRMED: ['DISPATCHED', 'CANCELLED'],
+  DISPATCHED: ['DELIVERED', 'CANCELLED'],
+  DELIVERED: [],
+  CANCELLED: [],
+}
+
 export type OrderPatch = Partial<
   Pick<Order, 'order_status' | 'payment_status' | 'advance_paid' | 'payment_gateway_ref' | 'shipping_provider' | 'awb_number' | 'tracking_url'>
 >
@@ -250,12 +286,16 @@ export async function updateOrder(id: string, patch: OrderPatch): Promise<Order>
     const db = mockDb()
     const order = db.orders.find((o) => o.id === id)
     if (!order) throw new Error('Order not found')
-    if (patch.order_status === 'CANCELLED' && order.order_status !== 'CANCELLED') {
+    const next = patch.order_status
+    if (next && next !== order.order_status && !ORDER_TRANSITIONS[order.order_status].includes(next)) {
+      throw new Error(`An order cannot move from ${order.order_status} to ${next}`)
+    }
+    if (next === 'CANCELLED' && order.order_status !== 'CANCELLED') {
       for (const item of order.items ?? []) {
         const p = db.products.find((x) => x.id === item.product_id)
         if (p) {
+          p.in_stock = p.in_stock || p.stock_count === 0
           p.stock_count += item.quantity
-          p.in_stock = true
         }
       }
     }
@@ -263,9 +303,10 @@ export async function updateOrder(id: string, patch: OrderPatch): Promise<Order>
     commitMockDb()
     return { ...order }
   }
-  const { data, error } = await supabase.from('orders').update(patch).eq('id', id).select(ORDER_SELECT).single()
+  const { data, error } = await supabase.from('orders').update(patch).eq('id', id).select(ORDER_SELECT)
   if (error) throw error
-  return normalizeOrder(data)
+  assertWritten(data)
+  return normalizeOrder(data[0])
 }
 
 export interface DashboardStats {
@@ -277,25 +318,46 @@ export interface DashboardStats {
   lowStock: Product[]
 }
 
+type StatsOrder = Pick<Order, 'created_at' | 'order_status' | 'payment_status' | 'final_amount' | 'balance_due_on_delivery'>
+const STATS_COLUMNS = 'created_at, order_status, payment_status, final_amount, balance_due_on_delivery'
+const OPEN_STATUSES: OrderStatus[] = ['PLACED', 'CONFIRMED', 'DISPATCHED']
+
+/** Stats come from two targeted queries (last 30 days + all open orders), not a capped order list. */
 export async function fetchDashboardStats(): Promise<DashboardStats> {
-  const [orders, products] = await Promise.all([
-    listOrders({ paymentStatus: 'ALL', orderStatus: 'ALL', paymentMode: 'ALL', search: '' }),
-    listAdminProducts(),
-  ])
   const startOfDay = new Date()
   startOfDay.setHours(0, 0, 0, 0)
-  const since30 = Date.now() - 30 * 86_400_000
-  const live = orders.filter((o) => o.order_status !== 'CANCELLED')
+  const since30 = new Date(Date.now() - 30 * 86_400_000)
+
+  let recent: StatsOrder[]
+  let open: StatsOrder[]
+  const productsPromise = listAdminProducts()
+  if (!supabase) {
+    const all = mockDb().orders
+    recent = all.filter((o) => new Date(o.created_at) >= since30)
+    open = all.filter((o) => OPEN_STATUSES.includes(o.order_status))
+  } else {
+    const [r, o] = await Promise.all([
+      supabase.from('orders').select(STATS_COLUMNS).gte('created_at', since30.toISOString()),
+      supabase.from('orders').select(STATS_COLUMNS).in('order_status', OPEN_STATUSES),
+    ])
+    if (r.error) throw r.error
+    if (o.error) throw o.error
+    const num = (x: StatsOrder) => ({ ...x, final_amount: Number(x.final_amount), balance_due_on_delivery: Number(x.balance_due_on_delivery) })
+    recent = (r.data as StatsOrder[]).map(num)
+    open = (o.data as StatsOrder[]).map(num)
+  }
+  const products = await productsPromise
+
+  const isPaid = (o: StatsOrder) => o.payment_status === 'PAID' || o.payment_status === 'PARTIAL_PAID'
+  const liveRecent = recent.filter((o) => o.order_status !== 'CANCELLED')
 
   return {
-    ordersToday: live.filter((o) => new Date(o.created_at) >= startOfDay).length,
-    revenue30d: live
-      .filter((o) => new Date(o.created_at).getTime() >= since30 && o.payment_status !== 'PENDING' && o.payment_status !== 'FAILED')
-      .reduce((sum, o) => sum + o.final_amount, 0),
-    awaitingDispatch: live.filter((o) => ['PLACED', 'CONFIRMED'].includes(o.order_status) && o.payment_status !== 'PENDING').length,
-    pendingPayment: live.filter((o) => o.payment_status === 'PENDING').length,
-    codBalanceOutstanding: live
-      .filter((o) => o.order_status !== 'DELIVERED')
+    ordersToday: liveRecent.filter((o) => new Date(o.created_at) >= startOfDay).length,
+    revenue30d: liveRecent.filter(isPaid).reduce((sum, o) => sum + o.final_amount, 0),
+    awaitingDispatch: open.filter((o) => o.order_status !== 'DISPATCHED' && isPaid(o)).length,
+    pendingPayment: open.filter((o) => o.order_status !== 'DISPATCHED' && o.payment_status === 'PENDING').length,
+    codBalanceOutstanding: open
+      .filter((o) => o.payment_status === 'PARTIAL_PAID')
       .reduce((sum, o) => sum + o.balance_due_on_delivery, 0),
     lowStock: products.filter((p) => p.stock_count <= 3).slice(0, 6),
   }

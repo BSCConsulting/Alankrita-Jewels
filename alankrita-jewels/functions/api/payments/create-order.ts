@@ -5,7 +5,7 @@
 // ALLOW_MOCK_PAYMENTS=true enables the simulated payment sheet for testing.
 import type { Env } from '../../_lib/env'
 import { error, json, readJson } from '../../_lib/http'
-import { amountDueNow, fetchOrder, getUserId, hasSupabase, rest } from '../../_lib/supabase'
+import { amountDueNow, fetchOrder, getUserId, hasSupabase, isPayable, rest } from '../../_lib/supabase'
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const { orderId } = await readJson<{ orderId: string }>(request)
@@ -23,10 +23,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const order = await fetchOrder(env, orderId)
   if (!order || order.user_id !== userId) return error('Order not found', 404)
-  if (order.payment_status !== 'PENDING') return error('This order is already paid', 409)
+  if (order.payment_status === 'PAID' || order.payment_status === 'PARTIAL_PAID') return error('This order is already paid', 409)
+  if (!isPayable(order)) return error('This order was cancelled. Please place a new order.', 409)
 
   const amount = amountDueNow(order)
   if (!razorpayLive) return json({ mode: env.ALLOW_MOCK_PAYMENTS === 'true' ? 'mock' : 'offline', amount })
+
+  // Retrying checkout reuses the same Razorpay order, so a payment on an earlier attempt still matches.
+  if (order.payment_gateway_ref?.startsWith('order_')) {
+    return json({ mode: 'live', keyId: env.RAZORPAY_KEY_ID, razorpayOrderId: order.payment_gateway_ref, amount: Math.round(amount * 100), currency: 'INR' })
+  }
 
   const res = await fetch('https://api.razorpay.com/v1/orders', {
     method: 'POST',
@@ -47,7 +53,19 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   }
   const rzp = (await res.json()) as { id: string; amount: number }
 
-  await rest(env, `orders?id=eq.${order.id}`, { method: 'PATCH', body: JSON.stringify({ payment_gateway_ref: rzp.id }) })
+  const saved = await rest<Array<{ payment_gateway_ref: string }>>(
+    env,
+    `orders?id=eq.${order.id}&payment_status=eq.PENDING&payment_gateway_ref=is.null&select=payment_gateway_ref`,
+    { method: 'PATCH', body: JSON.stringify({ payment_gateway_ref: rzp.id }) },
+  )
+  if (!saved.length) {
+    // A parallel request stored its Razorpay order first; use that one so verify/webhook can match it.
+    const current = await fetchOrder(env, order.id)
+    if (!current || !isPayable(current) || !current.payment_gateway_ref?.startsWith('order_')) {
+      return error('This order can no longer be paid. Please refresh the page.', 409)
+    }
+    return json({ mode: 'live', keyId: env.RAZORPAY_KEY_ID, razorpayOrderId: current.payment_gateway_ref, amount: rzp.amount, currency: 'INR' })
+  }
 
   return json({ mode: 'live', keyId: env.RAZORPAY_KEY_ID, razorpayOrderId: rzp.id, amount: rzp.amount, currency: 'INR' })
 }

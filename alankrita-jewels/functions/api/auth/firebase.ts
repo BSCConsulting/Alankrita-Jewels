@@ -9,7 +9,22 @@ import { hasSupabase, rest } from '../../_lib/supabase'
 
 const TOKEN_TTL_SECONDS = 60 * 60
 
+/** Looks the number up in auth.users (verified, not customer-editable) via the user_id_by_phone RPC. */
 async function findUserIdByPhone(env: Env, digits: string): Promise<string | null> {
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/user_id_by_phone`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY!,
+      authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ p_phone: digits }),
+  })
+  if (res.ok) return ((await res.json()) as string | null) ?? null
+  if (res.status !== 404) throw new Error(`user_id_by_phone failed: ${res.status} ${await res.text()}`)
+
+  // Migration 002 not applied yet.
+  console.warn('user_id_by_phone RPC missing — run supabase/migrations/002_audit_fixes.sql')
   const rows = await rest<Array<{ id: string }>>(env, `profiles?phone=in.(${digits},%2B${digits})&select=id&limit=1`)
   return rows[0]?.id ?? null
 }
@@ -46,7 +61,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       !jwtSecret && 'SUPABASE_JWT_SECRET',
       !hasSupabase(env) && 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY',
     ].filter(Boolean)
-    return error(`Phone login is not configured on the server (missing: ${missing.join(', ')})`, 503)
+    console.error(`Phone login is not configured (missing: ${missing.join(', ')})`)
+    return error('Phone login is temporarily unavailable. Please try again later.', 503)
   }
 
   const { idToken } = await readJson<{ idToken: string }>(request)

@@ -15,6 +15,7 @@ export interface OrderRow {
   balance_due_on_delivery: number
   advance_paid: number
   payment_status: 'PENDING' | 'PAID' | 'PARTIAL_PAID' | 'FAILED'
+  order_status: 'PLACED' | 'CONFIRMED' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED'
   payment_gateway_ref: string | null
   items?: Array<{ id: string; product_id: string | null; product_title: string; quantity: number; unit_price: number }>
 }
@@ -74,9 +75,16 @@ export async function fetchOrder(env: Env, orderId: string): Promise<OrderRow | 
 export const amountDueNow = (o: Pick<OrderRow, 'payment_mode' | 'final_amount' | 'balance_due_on_delivery'>) =>
   o.payment_mode === 'PARTIAL_COD' ? Number(o.final_amount) - Number(o.balance_due_on_delivery) : Number(o.final_amount)
 
-/** Idempotent: only transitions orders that are still PENDING. */
-export async function markOrderPaid(env: Env, order: OrderRow, gatewayRef: string) {
-  return rest(env, `orders?id=eq.${order.id}&payment_status=eq.PENDING`, {
+/** An order can take a payment only while it is unpaid and has not been cancelled or shipped. */
+export const isPayable = (o: Pick<OrderRow, 'payment_status' | 'order_status'>) =>
+  o.payment_status === 'PENDING' && (o.order_status === 'PLACED' || o.order_status === 'CONFIRMED')
+
+/**
+ * Idempotent: only transitions orders that are still payable. Returns false when nothing was updated,
+ * e.g. the order was cancelled (or already paid) between the checkout and the payment confirmation.
+ */
+export async function markOrderPaid(env: Env, order: OrderRow, gatewayRef: string): Promise<boolean> {
+  const rows = await rest<OrderRow[]>(env, `orders?id=eq.${order.id}&payment_status=eq.PENDING&order_status=in.(PLACED,CONFIRMED)`, {
     method: 'PATCH',
     body: JSON.stringify({
       payment_status: order.payment_mode === 'PARTIAL_COD' ? 'PARTIAL_PAID' : 'PAID',
@@ -85,4 +93,5 @@ export async function markOrderPaid(env: Env, order: OrderRow, gatewayRef: strin
       payment_gateway_ref: gatewayRef,
     }),
   })
+  return rows.length > 0
 }
