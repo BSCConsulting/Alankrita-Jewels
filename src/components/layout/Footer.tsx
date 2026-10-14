@@ -23,10 +23,10 @@ export function Footer() {
 
         <div>
           <p className="mb-3 text-xs font-semibold tracking-[0.2em] uppercase opacity-70">Collections</p>
-          <ul className="space-y-2 text-sm">
+          <ul className="grid grid-cols-2 gap-x-4 text-sm md:grid-cols-1">
             {NAV_LINKS.map((l) => (
               <li key={l.to}>
-                <Link to={l.to} className="opacity-90 hover:opacity-100 hover:underline">
+                <Link to={l.to} className="inline-block py-1.5 opacity-90 hover:opacity-100 hover:underline">
                   {l.label}
                 </Link>
               </li>
@@ -53,7 +53,7 @@ export function Footer() {
           <p className="mb-3 text-xs font-semibold tracking-[0.2em] uppercase opacity-70">Talk to us</p>
           <ul className="space-y-3 text-sm">
             <li>
-              <a href={`tel:${SITE.phoneE164}`} className="flex items-center gap-2 hover:underline">
+              <a href={`tel:${SITE.phoneE164}`} className="flex items-center gap-2 py-1 hover:underline">
                 <Phone className="size-4" /> {SITE.phoneDisplay}
               </a>
             </li>
@@ -62,7 +62,7 @@ export function Footer() {
                 href={whatsappLink('Hi Alankrita Jewels!')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:underline"
+                className="flex items-center gap-2 py-1 hover:underline"
               >
                 <WhatsAppIcon className="size-4" /> WhatsApp us
               </a>

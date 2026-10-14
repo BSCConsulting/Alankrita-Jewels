@@ -114,20 +114,26 @@ export function ProductCard({ product, eager = false }: { product: Product; eage
             {product.telugu_title}
           </p>
         )}
-        <PriceTag mrp={product.mrp} sale={product.sale_price} className="mt-1" />
+        <PriceTag mrp={product.mrp} sale={product.sale_price} showOff={false} className="mt-1" />
         <p className="text-[11px] font-medium text-emerald-700">{formatINR(upiPrice)} with UPI</p>
 
-        <div className="mt-auto grid gap-2 pt-3">
+        <div className="mt-auto grid grid-cols-1 gap-2 pt-3">
           {needsSize ? (
-            <Link to={href} className="ak-btn-primary py-2.5 text-xs">
+            <Link to={href} className="ak-btn-primary px-3 py-2.5 text-xs">
               Choose size
             </Link>
           ) : (
-            <button type="button" onClick={quickAdd} disabled={soldOut} className="ak-btn-primary py-2.5 text-xs">
-              <ShoppingBag className="size-4" /> Add to bag
+            <button type="button" onClick={quickAdd} disabled={soldOut} className="ak-btn-primary px-3 py-2.5 text-xs">
+              <ShoppingBag className="size-4 shrink-0" /> {soldOut ? 'Sold out' : 'Add to bag'}
             </button>
           )}
-          <WhatsAppEnquiryButton productName={product.title} price={product.sale_price} label="WhatsApp Enquiry" className="py-2.5 text-xs" />
+          <WhatsAppEnquiryButton
+            productName={product.title}
+            price={product.sale_price}
+            label="Enquire"
+            ariaLabel={`Enquire about ${product.title} on WhatsApp`}
+            className="px-3 py-2.5 text-xs"
+          />
         </div>
       </div>
 

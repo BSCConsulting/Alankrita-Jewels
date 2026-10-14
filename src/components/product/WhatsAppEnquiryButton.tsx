@@ -6,15 +6,17 @@ interface Props {
   productName: string
   price: number
   label?: string
+  ariaLabel?: string
   className?: string
 }
 
-export function WhatsAppEnquiryButton({ productName, price, label = 'Direct WhatsApp Enquiry', className }: Props) {
+export function WhatsAppEnquiryButton({ productName, price, label = 'Direct WhatsApp Enquiry', ariaLabel, className }: Props) {
   return (
     <a
       href={productEnquiryLink(productName, price)}
       target="_blank"
       rel="noopener noreferrer"
+      aria-label={ariaLabel}
       className={cn('ak-btn-whatsapp', className)}
       onClick={(e) => e.stopPropagation()}
     >

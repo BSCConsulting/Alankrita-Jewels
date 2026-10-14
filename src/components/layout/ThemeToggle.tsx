@@ -3,12 +3,32 @@ import { useActiveTheme, useThemeStore } from '@/stores/useThemeStore'
 import { THEMES } from '@/theme/themes'
 import { cn } from '@/lib/format'
 
-/** Floating pill that hangs off the header edge: flips Heritage Vault ⇄ Modern Studio. */
-export function ThemeToggle({ className }: { className?: string }) {
+/**
+ * Flips Heritage Vault ⇄ Modern Studio.
+ * `pill` hangs off the header edge on tablet/desktop; `icon` sits inside the mobile header bar.
+ */
+export function ThemeToggle({ className, variant = 'pill' }: { className?: string; variant?: 'pill' | 'icon' }) {
   const theme = useActiveTheme()
   const { toggle, override, setOverride } = useThemeStore()
   const target = theme === 'heritage' ? 'modern' : 'heritage'
   const Icon = target === 'heritage' ? Crown : Sparkles
+  const tone =
+    target === 'heritage'
+      ? 'border-heritage-gold/60 bg-heritage-maroon text-heritage-gold'
+      : 'border-white/60 bg-white/80 text-modern-charcoal backdrop-blur-md'
+
+  if (variant === 'icon')
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        className={cn('grid size-9 place-items-center rounded-full border shadow-sm', tone, className)}
+        aria-label={THEMES[target].switchLabel}
+        title={THEMES[target].switchLabel}
+      >
+        <Icon className="size-4" />
+      </button>
+    )
 
   return (
     <div className={cn('flex items-center gap-1', className)}>
@@ -16,10 +36,8 @@ export function ThemeToggle({ className }: { className?: string }) {
         type="button"
         onClick={toggle}
         className={cn(
-          'group flex items-center gap-2 border px-4 py-2 text-xs font-semibold tracking-wide shadow-lg transition hover:-translate-y-0.5',
-          target === 'heritage'
-            ? 'border-heritage-gold/60 bg-heritage-maroon text-heritage-gold'
-            : 'border-white/60 bg-white/80 text-modern-charcoal backdrop-blur-md',
+          'group flex items-center gap-2 border px-4 py-2 text-xs font-semibold tracking-wide whitespace-nowrap shadow-lg transition hover:-translate-y-0.5',
+          tone,
         )}
         style={{ borderRadius: 9999 }}
         aria-label={THEMES[target].switchLabel}

@@ -374,13 +374,21 @@ export default function ProductPage() {
 
       {/* Sticky mobile purchase bar */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:hidden">
-        <div className="flex items-center gap-3 pr-16">
-          <div className="min-w-0">
+        <div className="flex items-center gap-2 pr-16">
+          <div className="min-w-0 shrink-0">
             <p className="text-lg leading-none font-bold">{formatINR(product.sale_price)}</p>
             <p className="text-[11px] text-emerald-700">{formatINR(upiPrice)} with UPI</p>
           </div>
-          <button onClick={() => addToBag(true)} disabled={soldOut} className="ak-btn-primary flex-1 py-3">
-            <ShoppingBag className="size-4" /> {soldOut ? 'Sold out' : 'Buy now'}
+          <button
+            onClick={() => addToBag()}
+            disabled={soldOut}
+            className="ak-btn-outline ml-auto shrink-0 border-primary px-3 py-3"
+            aria-label="Add to bag"
+          >
+            <ShoppingBag className="size-5" />
+          </button>
+          <button onClick={() => addToBag(true)} disabled={soldOut} className="ak-btn-primary min-w-0 flex-1 px-3 py-3">
+            {soldOut ? 'Sold out' : 'Buy now'}
           </button>
         </div>
       </div>
