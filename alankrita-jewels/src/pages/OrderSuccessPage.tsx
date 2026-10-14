@@ -157,6 +157,9 @@ export default function OrderSuccessPage() {
           Continue shopping
         </Link>
       </div>
+      <Link to="/orders" className="mt-4 block text-center text-sm font-semibold text-primary underline underline-offset-4">
+        View all my orders
+      </Link>
     </div>
   )
 }

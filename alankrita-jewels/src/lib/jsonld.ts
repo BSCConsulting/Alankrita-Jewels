@@ -1,5 +1,5 @@
 // Pure schema.org builders — shared by the SPA and the Pages Function that pre-renders product meta.
-import { SITE } from '../config/site'
+import { BUSINESS, BUSINESS_ADDRESS, SITE } from '../config/site'
 
 export interface JsonLdProductInput {
   id: string
@@ -88,23 +88,63 @@ export function breadcrumbJsonLd(items: Array<{ name: string; path: string }>, s
   }
 }
 
+const pad = (h: number) => `${String(h).padStart(2, '0')}:00`
+
 export function storeJsonLd(siteUrl: string) {
   return {
     '@context': 'https://schema.org',
-    '@type': 'JewelryStore',
-    name: SITE.name,
-    alternateName: SITE.teluguName,
-    slogan: SITE.tagline,
-    url: siteUrl,
-    telephone: SITE.phoneE164,
-    priceRange: '₹₹',
-    areaServed: SITE.serviceCities.map((city) => ({ '@type': 'City', name: city })),
-    address: { '@type': 'PostalAddress', addressLocality: 'Hyderabad', addressRegion: 'Telangana', addressCountry: 'IN' },
-    contactPoint: {
-      '@type': 'ContactPoint',
-      telephone: SITE.phoneE164,
-      contactType: 'customer support',
-      availableLanguage: ['English', 'Telugu'],
-    },
+    '@graph': [
+      {
+        '@type': 'JewelryStore',
+        '@id': `${siteUrl}/#store`,
+        name: SITE.name,
+        alternateName: SITE.teluguName,
+        legalName: BUSINESS.legalName,
+        slogan: SITE.tagline,
+        url: siteUrl,
+        logo: `${siteUrl}/favicon.svg`,
+        image: `${siteUrl}/og-image.jpg`,
+        telephone: SITE.phoneE164,
+        email: BUSINESS.email || undefined,
+        vatID: BUSINESS.gstin || undefined,
+        priceRange: '₹₹',
+        areaServed: SITE.serviceCities.map((city) => ({ '@type': 'City', name: city })),
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: BUSINESS_ADDRESS.street,
+          addressLocality: BUSINESS_ADDRESS.locality,
+          addressRegion: BUSINESS_ADDRESS.region,
+          postalCode: BUSINESS_ADDRESS.postalCode,
+          addressCountry: 'IN',
+        },
+        openingHoursSpecification: {
+          '@type': 'OpeningHoursSpecification',
+          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+          opens: pad(SITE.supportOpenHour),
+          closes: pad(SITE.supportCloseHour),
+        },
+        contactPoint: {
+          '@type': 'ContactPoint',
+          telephone: SITE.phoneE164,
+          email: BUSINESS.email || undefined,
+          contactType: 'customer support',
+          availableLanguage: ['English', 'Telugu'],
+        },
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${siteUrl}/#website`,
+        name: SITE.name,
+        alternateName: SITE.teluguName,
+        url: siteUrl,
+        inLanguage: ['en-IN', 'te-IN'],
+        publisher: { '@id': `${siteUrl}/#store` },
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: { '@type': 'EntryPoint', urlTemplate: `${siteUrl}/search?q={search_term_string}` },
+          'query-input': 'required name=search_term_string',
+        },
+      },
+    ],
   }
 }

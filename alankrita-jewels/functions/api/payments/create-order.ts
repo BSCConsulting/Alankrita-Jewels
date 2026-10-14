@@ -3,11 +3,12 @@
 // The amount is always read from the database — never from the client.
 // Without Razorpay keys the order stays PENDING and is paid over WhatsApp/UPI ("offline"), unless
 // ALLOW_MOCK_PAYMENTS=true enables the simulated payment sheet for testing.
-import type { Env } from '../../_lib/env'
+import { alertNewOrder } from '../../_lib/alerts'
+import { siteUrl, type Env } from '../../_lib/env'
 import { error, json, readJson } from '../../_lib/http'
 import { amountDueNow, fetchOrder, getUserId, hasSupabase, isPayable, rest } from '../../_lib/supabase'
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   const { orderId } = await readJson<{ orderId: string }>(request)
   if (!orderId) return error('orderId is required', 400)
 
@@ -25,6 +26,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!order || order.user_id !== userId) return error('Order not found', 404)
   if (order.payment_status === 'PAID' || order.payment_status === 'PARTIAL_PAID') return error('This order is already paid', 409)
   if (!isPayable(order)) return error('This order was cancelled. Please place a new order.', 409)
+
+  // Every checkout calls this endpoint straight after place_order, so it doubles as the new-order hook.
+  waitUntil(alertNewOrder(env, order, siteUrl(env, request)))
 
   const amount = amountDueNow(order)
   if (!razorpayLive) return json({ mode: env.ALLOW_MOCK_PAYMENTS === 'true' ? 'mock' : 'offline', amount })

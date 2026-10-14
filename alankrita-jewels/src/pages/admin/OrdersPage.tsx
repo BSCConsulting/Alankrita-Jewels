@@ -1,13 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { BadgeCheck, ChevronDown, ExternalLink, Loader2, Phone, RefreshCw, Search, Send, Truck } from 'lucide-react'
+import { BadgeCheck, ChevronDown, Download, ExternalLink, Loader2, Phone, RefreshCw, Search, Send, Truck } from 'lucide-react'
 import { toast } from '@/components/ui/Toaster'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
+import { PAYMENT_RULES } from '@/config/site'
 import { useAsync } from '@/hooks/useAsync'
 import { createDelhiveryShipment, createShiprocketOrder } from '@/integrations/logistics'
 import { sendTrackingNotification } from '@/integrations/whatsappNotify'
+import { datedFilename, downloadCsv, ordersToCsv } from '@/lib/csv'
 import { cn, formatDate, formatINR } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
-import { listOrders, ORDER_TRANSITIONS, updateOrder } from '@/services/admin'
+import { exportOrders, listOrders, ORDER_TRANSITIONS, updateOrder } from '@/services/admin'
 import { amountDueNow } from '@/services/orders'
 import { useAdminStore } from '@/stores/useAdminStore'
 import { ORDER_STATUSES, PAYMENT_MODES, PAYMENT_STATUSES, type Order, type OrderStatus, type PaymentStatus } from '@/types'
@@ -111,6 +113,13 @@ export default function OrdersPage() {
       toast.success(`${order.order_number} marked as paid`)
     })
 
+  const exportCsv = () =>
+    run('EXPORT', async () => {
+      const all = await exportOrders(filters)
+      downloadCsv(datedFilename('alankrita-orders'), ordersToCsv(all))
+      toast.success(`Exported ${all.length} ${all.length === 1 ? 'order' : 'orders'}`)
+    })
+
   const setStatus = (order: Order, order_status: OrderStatus) =>
     run(`${order.id}:STATUS`, async () => {
       if (order_status === 'CANCELLED' && !confirm(`Cancel ${order.order_number}? Stock will be returned to inventory.`)) return
@@ -125,10 +134,25 @@ export default function OrdersPage() {
           <h1 className="text-2xl font-bold">Orders & logistics</h1>
           <p className="text-sm text-slate-500">{orders.length} {orders.length === 1 ? 'order matches' : 'orders match'} your filters</p>
         </div>
-        <button onClick={reload} className="ak-btn-outline bg-white py-2.5">
-          <RefreshCw className={cn('size-4', loading && 'animate-spin')} /> Refresh
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={exportCsv}
+            disabled={busy === 'EXPORT'}
+            title="Download every order matching the filters (works as a backup)"
+            className="ak-btn-outline bg-white py-2.5"
+          >
+            {busy === 'EXPORT' ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />} Export CSV
+          </button>
+          <button onClick={reload} className="ak-btn-outline bg-white py-2.5">
+            <RefreshCw className={cn('size-4', loading && 'animate-spin')} /> Refresh
+          </button>
+        </div>
       </div>
+
+      <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
+        Unpaid orders are cancelled automatically {PAYMENT_RULES.unpaidHoldHours} hours after they are placed, and their stock
+        is returned. Mark an order as paid before then to keep it.
+      </p>
 
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(3,180px)_auto]">
         <label className="relative">

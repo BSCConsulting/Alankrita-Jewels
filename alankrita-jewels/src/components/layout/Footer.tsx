@@ -6,6 +6,8 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { NAV_LINKS } from './Header'
 
 const POLICY_LINKS = [
+  { to: '/orders', label: 'My orders' },
+  { to: '/search', label: 'Search' },
   { to: '/contact', label: 'Contact us' },
   { to: '/policies/shipping', label: 'Shipping' },
   { to: '/policies/returns', label: 'Returns & damage' },

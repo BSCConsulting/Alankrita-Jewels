@@ -2,6 +2,7 @@
 // Safety net for shoppers who close the tab before the browser-side /verify call completes.
 import type { Env } from '../../_lib/env'
 import { error, hmacSha256Hex, json, safeEqual } from '../../_lib/http'
+import { alertPaid, alertRefundNeeded } from '../../_lib/alerts'
 import { hasSupabase, markOrderPaid, rest, type OrderRow } from '../../_lib/supabase'
 
 interface PaymentCapturedEvent {
@@ -30,8 +31,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return json({ ok: true, matched: false })
   }
   const alreadyPaid = order.payment_status === 'PAID' || order.payment_status === 'PARTIAL_PAID'
-  if (!alreadyPaid && !(await markOrderPaid(env, order, `${rzpOrderId}/${paymentId}`))) {
-    console.error(`REFUND NEEDED: payment ${paymentId} captured for unpayable order ${order.order_number}`)
+  if (!alreadyPaid) {
+    if (await markOrderPaid(env, order, `${rzpOrderId}/${paymentId}`)) {
+      await alertPaid(env, order, paymentId)
+    } else {
+      console.error(`REFUND NEEDED: payment ${paymentId} captured for unpayable order ${order.order_number}`)
+      await alertRefundNeeded(env, order.order_number, paymentId)
+    }
   }
 
   return json({ ok: true })

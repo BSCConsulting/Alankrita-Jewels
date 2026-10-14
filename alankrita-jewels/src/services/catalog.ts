@@ -1,3 +1,4 @@
+import { groupTaxonomyMatches, productMatches, rankResults, searchGroups } from '@/lib/search'
 import { supabase } from '@/lib/supabase'
 import type { Category, JewelleryType, Product, ProductMedia } from '@/types'
 import { delay, mockDb, withCategory } from './mockDb'
@@ -79,6 +80,33 @@ export async function fetchProducts(query: ProductQuery = {}): Promise<Product[]
   const { data, error } = await q
   if (error) throw error
   return (data ?? []).map(normalizeProduct)
+}
+
+/** Every word must match the title, Telugu title, description, plating, category or jewellery type. */
+export async function searchProducts(query: string, limit = 48): Promise<Product[]> {
+  const groups = searchGroups(query)
+  if (!groups.length) return []
+  const categories = await fetchCategories()
+
+  if (!supabase) {
+    await delay(120)
+    const rows = mockDb().products.map(withCategory).filter((p) => productMatches(p, groups, categories))
+    return rankResults(rows, groups).slice(0, limit)
+  }
+
+  let q = supabase.from('products').select(PRODUCT_SELECT)
+  for (const group of groups) {
+    const { categoryIds, types } = groupTaxonomyMatches(group, categories)
+    const clauses = group.flatMap((alt) =>
+      ['title', 'telugu_title', 'description', 'plating_type'].map((col) => `${col}.ilike."*${alt}*"`),
+    )
+    if (categoryIds.length) clauses.push(`category_id.in.(${categoryIds.join(',')})`)
+    if (types.length) clauses.push(`jewellery_type.in.(${types.join(',')})`)
+    q = q.or(clauses.join(','))
+  }
+  const { data, error } = await q.limit(limit)
+  if (error) throw error
+  return rankResults((data ?? []).map(normalizeProduct), groups)
 }
 
 export async function fetchProductBySlug(slug: string): Promise<Product | null> {

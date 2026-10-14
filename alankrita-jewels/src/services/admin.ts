@@ -239,23 +239,20 @@ export interface OrderFilters {
   search: string
 }
 
-export async function listOrders(filters: OrderFilters): Promise<Order[]> {
-  const term = filters.search.trim()
-  if (!supabase) {
-    await delay(150)
-    return mockDb().orders.filter(
-      (o) =>
-        (filters.paymentStatus === 'ALL' || o.payment_status === filters.paymentStatus) &&
-        (filters.orderStatus === 'ALL' || o.order_status === filters.orderStatus) &&
-        (filters.paymentMode === 'ALL' || o.payment_mode === filters.paymentMode) &&
-        (!term ||
-          [o.order_number, o.customer_name, o.customer_phone, o.awb_number ?? ''].some((v) =>
-            v.toLowerCase().includes(term.toLowerCase()),
-          )),
-    )
-  }
+function mockOrdersMatching(filters: OrderFilters): Order[] {
+  const term = filters.search.trim().toLowerCase()
+  return mockDb().orders.filter(
+    (o) =>
+      (filters.paymentStatus === 'ALL' || o.payment_status === filters.paymentStatus) &&
+      (filters.orderStatus === 'ALL' || o.order_status === filters.orderStatus) &&
+      (filters.paymentMode === 'ALL' || o.payment_mode === filters.paymentMode) &&
+      (!term || [o.order_number, o.customer_name, o.customer_phone, o.awb_number ?? ''].some((v) => v.toLowerCase().includes(term))),
+  )
+}
 
-  let q = supabase.from('orders').select(ORDER_SELECT).order('created_at', { ascending: false }).limit(200)
+function ordersQuery(filters: OrderFilters, from: number, to: number) {
+  const term = filters.search.trim()
+  let q = supabase!.from('orders').select(ORDER_SELECT).order('created_at', { ascending: false }).range(from, to)
   if (filters.paymentStatus !== 'ALL') q = q.eq('payment_status', filters.paymentStatus)
   if (filters.orderStatus !== 'ALL') q = q.eq('order_status', filters.orderStatus)
   if (filters.paymentMode !== 'ALL') q = q.eq('payment_mode', filters.paymentMode)
@@ -263,9 +260,30 @@ export async function listOrders(filters: OrderFilters): Promise<Order[]> {
     const safe = term.replace(/[,()%]/g, '')
     q = q.or(`order_number.ilike.%${safe}%,customer_name.ilike.%${safe}%,customer_phone.ilike.%${safe}%,awb_number.ilike.%${safe}%`)
   }
-  const { data, error } = await q
+  return q
+}
+
+export async function listOrders(filters: OrderFilters): Promise<Order[]> {
+  if (!supabase) {
+    await delay(150)
+    return mockOrdersMatching(filters)
+  }
+  const { data, error } = await ordersQuery(filters, 0, 199)
   if (error) throw error
   return (data ?? []).map(normalizeOrder)
+}
+
+/** Every order matching the filters (the list view stops at 200), for CSV export and backups. */
+export async function exportOrders(filters: OrderFilters): Promise<Order[]> {
+  if (!supabase) return mockOrdersMatching(filters)
+  const pageSize = 500
+  const all: Order[] = []
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await ordersQuery(filters, from, from + pageSize - 1)
+    if (error) throw error
+    all.push(...(data ?? []).map(normalizeOrder))
+    if (!data || data.length < pageSize) return all
+  }
 }
 
 /** Status changes an admin may make; mirrors the orders_guard_status trigger in migration 002. */

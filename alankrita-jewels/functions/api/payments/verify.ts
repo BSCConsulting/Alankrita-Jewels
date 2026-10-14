@@ -3,6 +3,7 @@
 // { orderId, mock: true }                                                  — dev only (ALLOW_MOCK_PAYMENTS=true)
 import type { Env } from '../../_lib/env'
 import { error, hmacSha256Hex, json, readJson, safeEqual } from '../../_lib/http'
+import { alertPaid, alertRefundNeeded } from '../../_lib/alerts'
 import { fetchOrder, getUserId, hasSupabase, isPayable, markOrderPaid } from '../../_lib/supabase'
 
 const CANCELLED_MESSAGE = 'This order was cancelled before your payment was confirmed. Please contact us on WhatsApp for a refund.'
@@ -15,7 +16,7 @@ interface VerifyBody {
   mock: boolean
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUntil }) => {
   const body = await readJson<VerifyBody>(request)
   if (!body.orderId) return error('orderId is required', 400)
 
@@ -43,10 +44,14 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const expected = await hmacSha256Hex(env.RAZORPAY_KEY_SECRET!, `${razorpay_order_id}|${razorpay_payment_id}`)
   if (!safeEqual(expected, razorpay_signature)) return error('Payment signature verification failed', 400)
 
-  if (await markOrderPaid(env, order, `${razorpay_order_id}/${razorpay_payment_id}`)) return json({ ok: true, mode: 'live' })
+  if (await markOrderPaid(env, order, `${razorpay_order_id}/${razorpay_payment_id}`)) {
+    waitUntil(alertPaid(env, order, razorpay_payment_id))
+    return json({ ok: true, mode: 'live' })
+  }
 
   const current = await fetchOrder(env, order.id)
   if (current?.payment_status === 'PAID' || current?.payment_status === 'PARTIAL_PAID') return json({ ok: true, alreadyPaid: true })
   console.error(`REFUND NEEDED: payment ${razorpay_payment_id} captured for unpayable order ${order.order_number}`)
+  waitUntil(alertRefundNeeded(env, order.order_number, razorpay_payment_id))
   return error(CANCELLED_MESSAGE, 409)
 }

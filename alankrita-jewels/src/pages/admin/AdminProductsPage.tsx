@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { ExternalLink, FileSpreadsheet, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { Download, ExternalLink, FileSpreadsheet, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { toast } from '@/components/ui/Toaster'
 import { JEWELLERY_TYPE_LABEL } from '@/config/collections'
 import { useAsync } from '@/hooks/useAsync'
+import { datedFilename, downloadCsv, productsToCsv } from '@/lib/csv'
 import { formatINR } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
-import { deleteProduct, listAdminProducts, updateProductFlags } from '@/services/admin'
+import { deleteProduct, fetchCategories, listAdminProducts, updateProductFlags } from '@/services/admin'
 import { productReel, productThumbnail } from '@/services/catalog'
 import type { Product } from '@/types'
 
@@ -43,6 +44,16 @@ export default function AdminProductsPage() {
     }
   }
 
+  const exportCsv = async () => {
+    try {
+      const categories = await fetchCategories(true)
+      downloadCsv(datedFilename('alankrita-products'), productsToCsv(products, new Map(categories.map((c) => [c.id, c.slug]))))
+      toast.success(`Exported ${products.length} products`)
+    } catch (e) {
+      toast.error(toErrorMessage(e))
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -50,7 +61,15 @@ export default function AdminProductsPage() {
           <h1 className="text-2xl font-bold">Products</h1>
           <p className="text-sm text-slate-500">{products.length} products in catalog</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={exportCsv}
+            disabled={products.length === 0}
+            title="Download every product in the bulk-upload format (re-importable backup)"
+            className="ak-btn-outline bg-white py-2.5"
+          >
+            <Download className="size-4" /> Export CSV
+          </button>
           <Link to="/admin/products/bulk" className="ak-btn-outline bg-white py-2.5">
             <FileSpreadsheet className="size-4" /> Bulk upload
           </Link>

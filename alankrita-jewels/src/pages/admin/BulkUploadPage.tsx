@@ -3,17 +3,15 @@ import { Link } from 'react-router'
 import { z } from 'zod'
 import { AlertCircle, ArrowLeft, CheckCircle2, Download, FileSpreadsheet, Loader2, Upload } from 'lucide-react'
 import { toast } from '@/components/ui/Toaster'
+import {
+  PRODUCT_COLUMNS as ALL_COLUMNS,
+  PRODUCT_OPTIONAL_COLUMNS as OPTIONAL_COLUMNS,
+  PRODUCT_REQUIRED_COLUMNS as REQUIRED_COLUMNS,
+} from '@/lib/csv'
 import { cn, formatINR, slugify } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
 import { bulkInsertProducts, existingSlugs, fetchCategories, type BulkProductRow } from '@/services/admin'
 import { JEWELLERY_TYPES, type JewelleryType } from '@/types'
-
-const REQUIRED_COLUMNS = ['title', 'category_slug', 'mrp', 'sale_price', 'jewellery_type', 'image_urls'] as const
-const OPTIONAL_COLUMNS = [
-  'slug', 'telugu_title', 'description', 'plating_type', 'warranty_details',
-  'available_sizes', 'stock_count', 'in_stock', 'featured', 'reel_url',
-] as const
-const ALL_COLUMNS = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS]
 
 const list = (v: unknown) =>
   String(v ?? '')
