@@ -128,8 +128,8 @@ export default function CollectionPage() {
         <div className="flex flex-wrap items-center justify-between gap-3 py-6">
           <p className="text-sm text-ink-muted">{products.loading ? 'Loading designs…' : `${sorted.length} ${sorted.length === 1 ? 'design' : 'designs'}`}</p>
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={inStockOnly} onChange={(e) => setInStockOnly(e.target.checked)} className="accent-[var(--ak-primary)]" />
+            <label className="flex items-center gap-2 py-2 text-sm">
+              <input type="checkbox" checked={inStockOnly} onChange={(e) => setInStockOnly(e.target.checked)} className="size-4 accent-[var(--ak-primary)]" />
               In stock
             </label>
             <label className="flex items-center gap-2 text-sm">

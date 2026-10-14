@@ -29,13 +29,13 @@ export function Header() {
       </div>
 
       <div className="relative border-b border-line bg-bg/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:h-20 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:h-20 sm:gap-3 sm:px-6">
           <button className="-ml-2 p-2 lg:hidden" onClick={() => setMenuOpen(true)} aria-label="Open menu">
             <Menu className="size-6" />
           </button>
 
-          <Link to="/" className="flex flex-col leading-none" aria-label={`${SITE.name} home`}>
-            <span className="font-display text-xl font-bold tracking-wide text-primary sm:text-2xl heritage:uppercase heritage:tracking-[0.12em]">
+          <Link to="/" className="flex min-w-0 flex-col leading-none" aria-label={`${SITE.name} home`}>
+            <span className="truncate font-display text-lg font-bold tracking-wide text-primary sm:text-2xl heritage:uppercase heritage:tracking-[0.1em] sm:heritage:tracking-[0.12em]">
               Alankrita<span className="text-accent heritage:text-accent modern:text-ink-muted"> Jewels</span>
             </span>
             <span lang="te" className="mt-1 text-[10px] text-ink-muted sm:text-xs">
@@ -60,7 +60,8 @@ export function Header() {
             ))}
           </nav>
 
-          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            <ThemeToggle variant="icon" className="md:hidden" />
             <a href={`tel:${SITE.phoneE164}`} className="hidden items-center gap-1.5 p-2 text-sm text-ink-muted hover:text-primary xl:flex">
               <Phone className="size-4" /> {SITE.phoneDisplay}
             </a>
@@ -75,7 +76,7 @@ export function Header() {
           </div>
         </div>
 
-        <ThemeToggle className="absolute bottom-0 left-1/2 z-10 -translate-x-1/2 translate-y-1/2" />
+        <ThemeToggle className="absolute bottom-0 left-1/2 z-10 hidden -translate-x-1/2 translate-y-1/2 md:flex" />
       </div>
 
       <Overlay open={menuOpen} onClose={() => setMenuOpen(false)} label="Menu" placement="right">
@@ -101,6 +102,7 @@ export function Header() {
               </Link>
             ))}
           </nav>
+          <ThemeToggle className="mx-4 justify-center" />
           <a href={`tel:${SITE.phoneE164}`} className="ak-btn-outline m-4">
             <Phone className="size-4" /> Call {SITE.phoneDisplay}
           </a>

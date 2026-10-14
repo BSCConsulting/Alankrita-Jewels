@@ -34,13 +34,14 @@ export function CollectionTiles() {
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 via-40% to-transparent to-75%" />
           <div className="absolute inset-x-0 bottom-0 p-3 text-white sm:p-4">
-            <p className="flex items-center gap-1 font-display text-lg leading-tight font-semibold sm:text-xl">
-              {c.name} <ArrowUpRight className="size-4 opacity-0 transition group-hover:opacity-100" />
+            <p className="flex items-end gap-1 font-display text-base leading-tight font-semibold drop-shadow sm:text-xl">
+              <span className="line-clamp-2">{c.name}</span>
+              <ArrowUpRight className="size-4 shrink-0 opacity-0 transition group-hover:opacity-100" />
             </p>
             {c.telugu_name && (
-              <p lang="te" className="text-xs text-white/80">
+              <p lang="te" className="mt-0.5 line-clamp-1 text-[11px] text-white/85 sm:text-xs">
                 {c.telugu_name}
               </p>
             )}

@@ -74,7 +74,7 @@ export function Hero() {
               fetchPriority="high"
             />
           </div>
-          <div className="ak-card absolute -bottom-5 -left-3 flex items-center gap-3 px-4 py-3 text-ink sm:-left-8">
+          <div className="ak-card absolute -bottom-5 left-3 flex items-center gap-3 px-4 py-3 text-ink sm:-left-8">
             {isHeritage ? <ShieldCheck className="size-8 text-primary" /> : <Sparkles className="size-8 text-accent" />}
             <div>
               <p className="text-sm font-semibold">{hero.floatingNote.title}</p>
