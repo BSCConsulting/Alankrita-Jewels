@@ -213,6 +213,9 @@ export default function ProductPage() {
                 </button>
               )}
             </div>
+            {images.some((img) => img.url.startsWith('/products/')) && (
+              <p className="mt-2 text-xs text-ink-muted">Representative image. The actual piece may vary slightly in design and finish.</p>
+            )}
           </div>
 
           {/* Details */}

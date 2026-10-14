@@ -7,13 +7,13 @@ import { fetchCategories } from '@/services/catalog'
 
 /** Representative artwork per collection until merchandised banners are uploaded. */
 const TILE_IMAGE: Record<string, string> = {
-  '1-gram-gold-jewellery': '/placeholders/guttapusalu-long-haram-1.svg',
-  'vaddanam-hip-belts': '/placeholders/lakshmi-nakshi-temple-vaddanam-1.svg',
-  'nallapusalu-black-beads': '/placeholders/lakshmi-coin-nallapusalu-long-chain-1.svg',
-  'choker-sets': '/placeholders/kempu-emerald-bridal-choker-set-1.svg',
-  'anti-tarnish-waterproof-jewellery': '/placeholders/anti-tarnish-butterfly-huggie-earrings-1.svg',
-  'american-diamond-cz-sets': '/placeholders/aaa-swiss-cz-bridal-necklace-set-1.svg',
-  'korean-fashion-accessories': '/placeholders/korean-pearl-drop-earrings-1.svg',
+  '1-gram-gold-jewellery': '/products/tile-1-gram-gold.webp',
+  'vaddanam-hip-belts': '/products/lakshmi-nakshi-temple-vaddanam-1.webp',
+  'nallapusalu-black-beads': '/products/lakshmi-coin-nallapusalu-long-chain-1.webp',
+  'choker-sets': '/products/kempu-emerald-bridal-choker-set-1.webp',
+  'anti-tarnish-waterproof-jewellery': '/products/anti-tarnish-butterfly-huggie-earrings-2.webp',
+  'american-diamond-cz-sets': '/products/aaa-swiss-cz-bridal-necklace-set-1.webp',
+  'korean-fashion-accessories': '/products/korean-pearl-drop-earrings-2.webp',
 }
 
 export function CollectionTiles() {
