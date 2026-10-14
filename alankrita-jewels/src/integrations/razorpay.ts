@@ -9,6 +9,22 @@ import { callApi } from './apiClient'
 type CreateOrderResponse =
   | { mode: 'live'; keyId: string; razorpayOrderId: string; amount: number; currency: 'INR' }
   | { mode: 'mock'; amount: number }
+  | { mode: 'offline'; amount: number }
+
+/** live = Razorpay; mock = simulated sheet (local dev / ALLOW_MOCK_PAYMENTS); offline = pay over WhatsApp/UPI. */
+export type PaymentGatewayMode = 'live' | 'mock' | 'offline'
+
+export async function fetchPaymentMode(): Promise<PaymentGatewayMode> {
+  if (!isSupabaseConfigured) return 'mock'
+  try {
+    const res = await fetch('/api/payments/config')
+    if (!(res.headers.get('content-type') ?? '').includes('application/json')) return 'mock'
+    const { mode } = (await res.json()) as { mode: PaymentGatewayMode }
+    return mode
+  } catch {
+    return 'offline'
+  }
+}
 
 interface RazorpaySuccess {
   razorpay_order_id: string
@@ -27,7 +43,11 @@ declare global {
   }
 }
 
-export type PaymentOutcome = { status: 'paid'; ref: string } | { status: 'dismissed' } | { status: 'failed'; reason: string }
+export type PaymentOutcome =
+  | { status: 'paid'; ref: string }
+  | { status: 'offline' }
+  | { status: 'dismissed' }
+  | { status: 'failed'; reason: string }
 
 export interface CollectPaymentOptions {
   order: Order
@@ -50,14 +70,12 @@ export async function collectPayment({ order, onMockPayment }: CollectPaymentOpt
   const created = await callApi<CreateOrderResponse>('/api/payments/create-order', { orderId: order.id })
   const amount = amountDueNow(order)
 
-  if (!created.available || created.data.mode === 'mock') {
-    const approved = await onMockPayment(amount)
-    if (!approved) return { status: 'dismissed' }
-    const ref = `mock_pay_${Date.now()}`
-    if (!isSupabaseConfigured) await markMockOrderPaid(order.id, ref)
-    else if (created.available) await callApi('/api/payments/verify', { orderId: order.id, mock: true })
-    return { status: 'paid', ref }
+  if (!created.available) {
+    if (isSupabaseConfigured) return { status: 'failed', reason: 'The payment service could not be reached' }
+    return simulatePayment(order, amount, onMockPayment)
   }
+  if (created.data.mode === 'offline') return { status: 'offline' }
+  if (created.data.mode === 'mock') return simulatePayment(order, amount, onMockPayment)
 
   const live = created.data
   await loadCheckoutScript()
@@ -88,4 +106,13 @@ export async function collectPayment({ order, onMockPayment }: CollectPaymentOpt
     rzp.on('payment.failed', (resp) => resolve({ status: 'failed', reason: resp.error.description }))
     rzp.open()
   })
+}
+
+async function simulatePayment(order: Order, amount: number, onMockPayment: CollectPaymentOptions['onMockPayment']): Promise<PaymentOutcome> {
+  const approved = await onMockPayment(amount)
+  if (!approved) return { status: 'dismissed' }
+  const ref = `mock_pay_${Date.now()}`
+  if (isSupabaseConfigured) await callApi('/api/payments/verify', { orderId: order.id, mock: true })
+  else await markMockOrderPaid(order.id, ref)
+  return { status: 'paid', ref }
 }

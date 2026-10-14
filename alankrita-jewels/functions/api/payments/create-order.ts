@@ -1,6 +1,8 @@
 // POST /api/payments/create-order  { orderId }
 // Creates a Razorpay order for the amount due *now* (full amount for UPI prepaid, ₹150 for Partial COD).
 // The amount is always read from the database — never from the client.
+// Without Razorpay keys the order stays PENDING and is paid over WhatsApp/UPI ("offline"), unless
+// ALLOW_MOCK_PAYMENTS=true enables the simulated payment sheet for testing.
 import type { Env } from '../../_lib/env'
 import { error, json, readJson } from '../../_lib/http'
 import { amountDueNow, fetchOrder, getUserId, hasSupabase, rest } from '../../_lib/supabase'
@@ -24,7 +26,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (order.payment_status !== 'PENDING') return error('This order is already paid', 409)
 
   const amount = amountDueNow(order)
-  if (!razorpayLive) return json({ mode: 'mock', amount })
+  if (!razorpayLive) return json({ mode: env.ALLOW_MOCK_PAYMENTS === 'true' ? 'mock' : 'offline', amount })
 
   const res = await fetch('https://api.razorpay.com/v1/orders', {
     method: 'POST',

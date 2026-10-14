@@ -9,7 +9,7 @@ import { MockPaymentSheet } from '@/components/checkout/MockPaymentSheet'
 import { OrderSummary } from '@/components/checkout/OrderSummary'
 import { PaymentModeSelector } from '@/components/checkout/PaymentModeSelector'
 import { OTHER_STATES, PRIORITY_STATES, stateFromPincode } from '@/config/states'
-import { collectPayment } from '@/integrations/razorpay'
+import { collectPayment, fetchPaymentMode, type PaymentGatewayMode } from '@/integrations/razorpay'
 import { cn, formatINR, maskPhone } from '@/lib/format'
 import { computeTotals } from '@/lib/pricing'
 import { useSeo } from '@/lib/seo'
@@ -41,6 +41,7 @@ export default function CheckoutPage() {
 
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [mockAmount, setMockAmount] = useState<number | null>(null)
+  const [gateway, setGateway] = useState<PaymentGatewayMode>('live')
   const mockResolver = useRef<((ok: boolean) => void) | null>(null)
   // Re-use an already-created order if the shopper retries payment, so stock isn't reserved twice.
   const pendingOrder = useRef<Order | null>(null)
@@ -69,6 +70,10 @@ export default function CheckoutPage() {
   useEffect(() => {
     pendingOrder.current = null
   }, [items, mode])
+
+  useEffect(() => {
+    void fetchPaymentMode().then(setGateway)
+  }, [])
 
   const lines = toPricedLines(items)
   const totals = computeTotals(lines, mode)
@@ -100,7 +105,7 @@ export default function CheckoutPage() {
       pendingOrder.current = order
 
       const outcome = await collectPayment({ order, onMockPayment: requestMockPayment })
-      if (outcome.status === 'paid') {
+      if (outcome.status === 'paid' || outcome.status === 'offline') {
         pendingOrder.current = null
         clear()
         navigate(`/order/${order.order_number}`, { replace: true })
@@ -227,6 +232,8 @@ export default function CheckoutPage() {
                     <>
                       <Loader2 className="size-5 animate-spin" /> Processing…
                     </>
+                  ) : gateway === 'offline' ? (
+                    `Place Order · Pay ${formatINR(totals.payNow)} via UPI`
                   ) : mode === 'PARTIAL_COD' ? (
                     `Pay ${formatINR(totals.payNow)} & Confirm Order`
                   ) : (
@@ -234,7 +241,20 @@ export default function CheckoutPage() {
                   )}
                 </button>
                 <p className="text-center text-xs text-ink-muted">
-                  One-click confirm · Secured by Razorpay · 100% safe UPI payments
+                  {gateway === 'offline'
+                    ? 'Next, pay by UPI (GPay, PhonePe, Paytm). We share our UPI details on WhatsApp and confirm your order once payment is received.'
+                    : 'One-click confirm · Secured by Razorpay · 100% safe UPI payments'}
+                </p>
+                <p className="text-center text-xs text-ink-muted">
+                  By placing this order you agree to our{' '}
+                  <Link to="/policies/terms" className="underline">
+                    Terms
+                  </Link>{' '}
+                  and{' '}
+                  <Link to="/policies/returns" className="underline">
+                    Returns policy
+                  </Link>
+                  .
                 </p>
               </form>
             </>

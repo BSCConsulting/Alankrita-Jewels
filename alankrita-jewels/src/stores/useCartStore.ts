@@ -26,6 +26,19 @@ interface CartState {
   clear: () => void
   open: () => void
   close: () => void
+  /** Refresh prices, images and stock from the catalogue; returns titles of lines that were removed or changed. */
+  sync: (products: SyncProduct[]) => { removed: string[]; changed: string[] }
+}
+
+export interface SyncProduct {
+  id: string
+  title: string
+  telugu_title: string | null
+  image: string
+  mrp: number
+  sale_price: number
+  stock_count: number
+  in_stock: boolean
 }
 
 const MAX_PER_LINE = 10
@@ -34,7 +47,7 @@ const clampQty = (qty: number, max: number) => Math.max(1, Math.min(qty, max, MA
 
 export const useCartStore = create<CartState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       items: [],
       isOpen: false,
       add: (item, quantity = 1) =>
@@ -56,6 +69,23 @@ export const useCartStore = create<CartState>()(
       clear: () => set({ items: [] }),
       open: () => set({ isOpen: true }),
       close: () => set({ isOpen: false }),
+      sync: (products) => {
+        const byId = new Map(products.map((p) => [p.id, p]))
+        const removed: string[] = []
+        const changed: string[] = []
+        const items = get().items.flatMap((i) => {
+          const p = byId.get(i.productId)
+          if (!p || !p.in_stock || p.stock_count < 1) {
+            removed.push(i.title)
+            return []
+          }
+          const quantity = clampQty(i.quantity, p.stock_count)
+          if (p.sale_price !== i.salePrice || quantity !== i.quantity) changed.push(p.title)
+          return [{ ...i, title: p.title, teluguTitle: p.telugu_title, image: p.image, mrp: p.mrp, salePrice: p.sale_price, maxQty: p.stock_count, quantity }]
+        })
+        set({ items })
+        return { removed, changed }
+      },
     }),
     { name: 'ak-cart', partialize: (s) => ({ items: s.items }) },
   ),

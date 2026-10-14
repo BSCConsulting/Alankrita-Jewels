@@ -11,6 +11,7 @@ import { ThemeProvider } from '@/theme/ThemeProvider'
 
 const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'))
 const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage'))
+const PolicyPage = lazy(() => import('@/pages/PolicyPage'))
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'))
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
 const AdminProductsPage = lazy(() => import('@/pages/admin/AdminProductsPage'))
@@ -33,6 +34,8 @@ const router = createBrowserRouter([
       { path: 'product/:slug', element: <ProductPage /> },
       { path: 'checkout', element: suspend(<CheckoutPage />) },
       { path: 'order/:orderNumber', element: suspend(<OrderSuccessPage />) },
+      { path: 'policies/:slug', element: suspend(<PolicyPage />) },
+      { path: 'contact', element: suspend(<PolicyPage slug="contact" />) },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
