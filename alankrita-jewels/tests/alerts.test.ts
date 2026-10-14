@@ -54,7 +54,14 @@ describe('alerts', () => {
   it('never throws when Telegram is unreachable', async () => {
     fetchMock.mockRejectedValueOnce(new Error('offline'))
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    await expect(sendAlert(env, 'hi')).resolves.toBeUndefined()
+    await expect(sendAlert(env, 'hi')).resolves.toEqual({ ok: false, reason: 'Telegram could not be reached' })
+    spy.mockRestore()
+  })
+
+  it('passes on Telegram\'s reason when it rejects the message', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('{"ok":false,"description":"Bad Request: chat not found"}', { status: 400 }))
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(sendAlert(env, 'hi')).resolves.toEqual({ ok: false, reason: 'Bad Request: chat not found' })
     spy.mockRestore()
   })
 

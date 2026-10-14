@@ -12,17 +12,28 @@ const inr = (n: number) => `₹${Number(n).toLocaleString('en-IN')}`
 
 export const alertsEnabled = (env: Env) => Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID)
 
-export async function sendAlert(env: Env, html: string): Promise<void> {
-  if (!alertsEnabled(env)) return
+/** Resolves with Telegram's verdict so the admin test button can explain a wrong token or chat id. */
+export async function sendAlert(env: Env, html: string): Promise<{ ok: boolean; reason?: string }> {
+  if (!alertsEnabled(env)) return { ok: false, reason: 'not configured' }
   try {
-    const res = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN!.trim()}/sendMessage`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text: html, parse_mode: 'HTML', disable_web_page_preview: true }),
+      body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID!.trim(), text: html, parse_mode: 'HTML', disable_web_page_preview: true }),
     })
-    if (!res.ok) console.error('Telegram alert failed', res.status, await res.text())
+    if (res.ok) return { ok: true }
+    const body = await res.text()
+    console.error('Telegram alert failed', res.status, body)
+    let reason = `Telegram error ${res.status}`
+    try {
+      reason = (JSON.parse(body) as { description?: string }).description ?? reason
+    } catch {
+      // keep the status-only reason
+    }
+    return { ok: false, reason }
   } catch (err) {
     console.error('Telegram alert failed', err)
+    return { ok: false, reason: 'Telegram could not be reached' }
   }
 }
 

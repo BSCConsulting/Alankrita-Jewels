@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router'
-import { AlertTriangle, BadgeIndianRupee, Clock, PackageOpen, Truck } from 'lucide-react'
+import { AlertTriangle, BadgeIndianRupee, BellRing, CheckCircle2, Clock, Loader2, PackageOpen, Send, Truck, XCircle } from 'lucide-react'
 import { useAsync } from '@/hooks/useAsync'
-import { formatINR } from '@/lib/format'
+import { callApi } from '@/integrations/apiClient'
+import { cn, formatINR } from '@/lib/format'
+import { toErrorMessage } from '@/lib/supabase'
 import { fetchDashboardStats } from '@/services/admin'
 import { productThumbnail } from '@/services/catalog'
 
@@ -66,6 +69,48 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      <TelegramAlertsCard />
+    </div>
+  )
+}
+
+function TelegramAlertsCard() {
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const sendTest = async () => {
+    setSending(true)
+    setResult(null)
+    try {
+      const res = await callApi<{ sent: boolean; reason?: string }>('/api/admin/test-alert', {}, 'admin')
+      if (!res.available) setResult({ ok: false, text: 'Test alerts only work on the live site.' })
+      else if (res.data.sent) setResult({ ok: true, text: 'Sent — check your Telegram.' })
+      else setResult({ ok: false, text: res.data.reason ?? 'Telegram did not accept the message.' })
+    } catch (e) {
+      setResult({ ok: false, text: toErrorMessage(e) })
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="min-w-0">
+        <h2 className="flex items-center gap-2 font-semibold">
+          <BellRing className="size-4 text-slate-400" /> Telegram order alerts
+        </h2>
+        <p className="text-sm text-slate-500">New orders, payments, refunds needed and site errors are sent to your Telegram.</p>
+        {result && (
+          <p className={cn('mt-2 flex items-center gap-1.5 text-sm font-medium', result.ok ? 'text-emerald-700' : 'text-red-700')}>
+            {result.ok ? <CheckCircle2 className="size-4 shrink-0" /> : <XCircle className="size-4 shrink-0" />}
+            {result.text}
+          </p>
+        )}
+      </div>
+      <button onClick={sendTest} disabled={sending} className="ak-btn-outline bg-white py-2.5">
+        {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Send test alert
+      </button>
     </div>
   )
 }
