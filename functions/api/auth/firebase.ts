@@ -38,14 +38,21 @@ async function createPhoneUser(env: Env, digits: string, firebaseUid: string): P
 }
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  if (!env.FIREBASE_PROJECT_ID || !env.SUPABASE_JWT_SECRET || !hasSupabase(env)) {
-    return error('Phone login is not configured on the server', 503)
+  const projectId = env.FIREBASE_PROJECT_ID
+  const jwtSecret = env.SUPABASE_JWT_SECRET
+  if (!projectId || !jwtSecret || !hasSupabase(env)) {
+    const missing = [
+      !projectId && 'FIREBASE_PROJECT_ID',
+      !jwtSecret && 'SUPABASE_JWT_SECRET',
+      !hasSupabase(env) && 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY',
+    ].filter(Boolean)
+    return error(`Phone login is not configured on the server (missing: ${missing.join(', ')})`, 503)
   }
 
   const { idToken } = await readJson<{ idToken: string }>(request)
   if (!idToken) return error('idToken is required', 400)
 
-  const identity = await verifyFirebaseIdToken(idToken, env.FIREBASE_PROJECT_ID)
+  const identity = await verifyFirebaseIdToken(idToken, projectId)
   if (!identity) return error('Your verification has expired. Please request a new OTP.', 401)
 
   const digits = identity.phoneNumber.replace(/^\+/, '')
@@ -68,7 +75,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       amr: [{ method: 'otp', timestamp: iat }],
       is_anonymous: false,
     },
-    env.SUPABASE_JWT_SECRET,
+    jwtSecret,
   )
 
   return json({ accessToken, expiresAt: exp, userId, phone: `+${digits}` }, 200, { 'cache-control': 'no-store' })
