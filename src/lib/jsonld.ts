@@ -15,6 +15,8 @@ export interface JsonLdProductInput {
   warranty_details: string | null
   imageUrls: string[]
   categoryName?: string | null
+  /** Approved reviews shown on the page; Google only accepts ratings that visitors can see. */
+  reviews?: Array<{ rating: number; body: string; display_name: string; created_at: string }>
 }
 
 const absolute = (siteUrl: string, url: string) => (url.startsWith('http') ? url : `${siteUrl}${url}`)
@@ -74,6 +76,28 @@ export function productJsonLd(p: JsonLdProductInput, siteUrl: string) {
     additionalProperty: p.warranty_details
       ? [{ '@type': 'PropertyValue', name: 'Warranty', value: p.warranty_details }]
       : undefined,
+    ...reviewJsonLd(p.reviews ?? []),
+  }
+}
+
+function reviewJsonLd(reviews: NonNullable<JsonLdProductInput['reviews']>) {
+  if (!reviews.length) return {}
+  const average = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+  return {
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: average.toFixed(1),
+      reviewCount: reviews.length,
+      bestRating: 5,
+      worstRating: 1,
+    },
+    review: reviews.slice(0, 5).map((r) => ({
+      '@type': 'Review',
+      reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5, worstRating: 1 },
+      author: { '@type': 'Person', name: r.display_name.split(',')[0] },
+      datePublished: r.created_at.slice(0, 10),
+      reviewBody: r.body,
+    })),
   }
 }
 

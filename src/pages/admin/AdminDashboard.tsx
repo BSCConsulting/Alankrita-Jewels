@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { AlertTriangle, BadgeIndianRupee, BellRing, CheckCircle2, Clock, Loader2, PackageOpen, Send, Truck, XCircle } from 'lucide-react'
+import { AlertTriangle, BadgeIndianRupee, BellRing, CheckCircle2, Clock, Loader2, MessageSquareHeart, PackageOpen, Send, Truck, XCircle } from 'lucide-react'
 import { useAsync } from '@/hooks/useAsync'
 import { callApi } from '@/integrations/apiClient'
 import { cn, formatINR } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
 import { fetchDashboardStats } from '@/services/admin'
 import { productThumbnail } from '@/services/catalog'
+import { countPendingReviews } from '@/services/reviews'
+import { listPendingStockAlerts } from '@/services/stockAlerts'
 
 export default function AdminDashboard() {
   const { data: stats, loading, error } = useAsync(fetchDashboardStats, [])
@@ -29,6 +31,8 @@ export default function AdminDashboard() {
 
       {error && <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error.message}</p>}
       {loading && <p className="text-sm text-slate-500">Loading…</p>}
+
+      <AttentionStrip />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {cards.map(({ label, value, icon: Icon, to }) => (
@@ -71,6 +75,30 @@ export default function AdminDashboard() {
       )}
 
       <TelegramAlertsCard />
+    </div>
+  )
+}
+
+/** Customer actions waiting on the owner; hidden when there is nothing to do. */
+function AttentionStrip() {
+  const { data } = useAsync(async () => {
+    const [pendingReviews, alerts] = await Promise.all([countPendingReviews(), listPendingStockAlerts().catch(() => [])])
+    const restocked = alerts.filter((g) => g.product.in_stock && g.product.stock_count > 0)
+    return { pendingReviews, restocked: restocked.reduce((n, g) => n + g.alerts.length, 0) }
+  }, [])
+  if (!data || (!data.pendingReviews && !data.restocked)) return null
+  return (
+    <div className="flex flex-wrap gap-3">
+      {data.pendingReviews > 0 && (
+        <Link to="/admin/reviews" className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
+          <MessageSquareHeart className="size-4" /> {data.pendingReviews} review{data.pendingReviews > 1 ? 's' : ''} waiting for approval
+        </Link>
+      )}
+      {data.restocked > 0 && (
+        <Link to="/admin/stock-alerts" className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+          <BellRing className="size-4" /> {data.restocked} customer{data.restocked > 1 ? 's' : ''} to message: their piece is back in stock
+        </Link>
+      )}
     </div>
   )
 }

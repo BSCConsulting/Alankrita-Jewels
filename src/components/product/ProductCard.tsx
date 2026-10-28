@@ -9,6 +9,9 @@ import { addLimitMessage, useCartStore } from '@/stores/useCartStore'
 import { toast } from '@/components/ui/Toaster'
 import type { Product } from '@/types'
 import { PriceTag } from '@/components/ui/PriceTag'
+import { Stars } from '@/components/reviews/Stars'
+import { useAsync } from '@/hooks/useAsync'
+import { fetchRatingSummaries } from '@/services/reviews'
 import { ProductBadges } from './ProductBadges'
 import { ReelModal } from './ReelModal'
 import { WhatsAppEnquiryButton } from './WhatsAppEnquiryButton'
@@ -18,6 +21,7 @@ export function ProductCard({ product, eager = false }: { product: Product; eage
   const [index, setIndex] = useState(0)
   const [reelOpen, setReelOpen] = useState(false)
   const add = useCartStore((s) => s.add)
+  const rating = useAsync(() => fetchRatingSummaries(), []).data?.get(product.id)
 
   const images = productImages(product)
   const reel = productReel(product)
@@ -61,7 +65,9 @@ export function ProductCard({ product, eager = false }: { product: Product; eage
           {(images.length ? images : [{ id: 'fallback', url: productThumbnail(product) }]).map((img, i) => (
             <Link key={img.id} to={href} className="h-full w-full shrink-0 snap-start" tabIndex={i === 0 ? 0 : -1}>
               <img
-                src={img.url}
+                src={'thumb_url' in img && img.thumb_url ? img.thumb_url : img.url}
+                srcSet={'thumb_url' in img && img.thumb_url ? `${img.thumb_url} 480w, ${img.url} 1400w` : undefined}
+                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
                 alt={i === 0 ? product.title : `${product.title} — detail view`}
                 loading={eager && i === 0 ? 'eager' : 'lazy'}
                 decoding="async"
@@ -118,6 +124,12 @@ export function ProductCard({ product, eager = false }: { product: Product; eage
           <p lang="te" className="line-clamp-1 text-[11px] text-ink-muted sm:text-xs">
             {product.telugu_title}
           </p>
+        )}
+        {rating && rating.count > 0 && (
+          <Link to={`${href}#reviews`} className="flex items-center gap-1 text-[11px] text-ink-muted sm:text-xs">
+            <Stars value={rating.average} size="size-3" />
+            <span>({rating.count})</span>
+          </Link>
         )}
         <PriceTag mrp={product.mrp} sale={product.sale_price} showOff={false} className="mt-1" />
         <p className="text-[11px] font-medium text-emerald-700">{formatINR(upiPrice)} with UPI</p>

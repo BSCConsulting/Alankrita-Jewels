@@ -4,6 +4,9 @@ import { BadgeIndianRupee, ChevronRight, Minus, Play, Plus, ShieldCheck, Shoppin
 import { ProductBadges } from '@/components/product/ProductBadges'
 import { ProductGrid } from '@/components/product/ProductGrid'
 import { ReelModal } from '@/components/product/ReelModal'
+import { StockAlertButton } from '@/components/product/StockAlertButton'
+import { ProductReviews } from '@/components/reviews/ProductReviews'
+import { Stars } from '@/components/reviews/Stars'
 import { WhatsAppEnquiryButton } from '@/components/product/WhatsAppEnquiryButton'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { PriceTag } from '@/components/ui/PriceTag'
@@ -15,7 +18,18 @@ import { useAsync } from '@/hooks/useAsync'
 import { cn, formatINR } from '@/lib/format'
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld'
 import { SITE_URL, useSeo } from '@/lib/seo'
-import { fetchCategories, fetchProductBySlug, fetchProducts, productImages, productReel, productThumbnail } from '@/services/catalog'
+import {
+  fetchBoughtTogether,
+  fetchCategories,
+  fetchProductBySlug,
+  fetchProducts,
+  fetchProductsByIds,
+  productImages,
+  productReel,
+  productThumbnail,
+} from '@/services/catalog'
+import type { Product } from '@/types'
+import { fetchProductReviews, summarize } from '@/services/reviews'
 import { toast } from '@/components/ui/Toaster'
 import { addLimitMessage, MAX_QTY_PER_PRODUCT, useCartStore } from '@/stores/useCartStore'
 import { useRouteTheme } from '@/theme/ThemeProvider'
@@ -42,10 +56,20 @@ export default function ProductPage() {
   const add = useCartStore((s) => s.add)
   const { data: product, loading } = useAsync(() => fetchProductBySlug(slug), [slug])
   const { data: categories } = useAsync(() => fetchCategories(), [])
-  const related = useAsync(
-    () => (product?.category ? fetchProducts({ categorySlug: product.category.slug, excludeId: product.id, limit: 4 }) : Promise.resolve([])),
-    [product?.id],
-  )
+  const related = useAsync(async () => {
+    if (!product) return { products: [], together: false }
+    const [counts, sameCategory] = await Promise.all([
+      fetchBoughtTogether(product.id),
+      product.category ? fetchProducts({ categorySlug: product.category.slug, excludeId: product.id, limit: 8 }) : Promise.resolve([]),
+    ])
+    const inStock = (p: Product) => p.in_stock && p.stock_count > 0
+    const together = (await fetchProductsByIds([...counts.keys()]))
+      .filter(inStock)
+      .sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0))
+    const picked = [...together, ...sameCategory.filter((p) => !counts.has(p.id))].slice(0, 4)
+    return { products: picked, together: together.length > 0 }
+  }, [product?.id])
+  const reviews = useAsync(() => (product ? fetchProductReviews(product.id) : Promise.resolve([])), [product?.id])
 
   const [size, setSize] = useState<string | null>(null)
   const [qty, setQty] = useState(1)
@@ -87,6 +111,7 @@ export default function ProductPage() {
   const images = productImages(product)
   const reel = productReel(product)
   const soldOut = !product.in_stock || product.stock_count < 1
+  const rating = summarize(reviews.data ?? [])
   const upiPrice = product.sale_price - Math.round(product.sale_price * PAYMENT_RULES.prepaidDiscountRate)
   const categoryLink = product.category && categories ? categoryPath(product.category, categories) : null
   const crumbs = [
@@ -137,6 +162,7 @@ export default function ProductPage() {
             ...product,
             imageUrls: images.map((m) => m.url),
             categoryName: product.category?.name,
+            reviews: reviews.data ?? [],
           },
           SITE_URL,
         )}
@@ -233,6 +259,15 @@ export default function ProductPage() {
                 {product.telugu_title}
               </p>
             )}
+            {rating.count > 0 && (
+              <a href="#reviews" className="mt-2 inline-flex items-center gap-2 text-sm hover:underline">
+                <Stars value={rating.average} />
+                <span className="font-semibold">{rating.average.toFixed(1)}</span>
+                <span className="text-ink-muted">
+                  ({rating.count} review{rating.count > 1 ? 's' : ''})
+                </span>
+              </a>
+            )}
 
             <PriceTag mrp={product.mrp} sale={product.sale_price} size="lg" className="mt-5" />
             <p className="mt-1 text-xs text-ink-muted">Inclusive of all taxes · Free insured shipping</p>
@@ -310,14 +345,20 @@ export default function ProductPage() {
               </p>
             </div>
 
-            <div className="mt-6 hidden gap-3 md:grid md:grid-cols-2">
-              <button onClick={() => addToBag()} disabled={soldOut} className="ak-btn-outline border-primary py-3.5 text-base">
-                <ShoppingBag className="size-5" /> Add to bag
-              </button>
-              <button onClick={() => addToBag(true)} disabled={soldOut} className="ak-btn-primary py-3.5 text-base">
-                Buy now
-              </button>
-            </div>
+            {soldOut ? (
+              <div className="mt-6 hidden md:block">
+                <StockAlertButton productId={product.id} />
+              </div>
+            ) : (
+              <div className="mt-6 hidden gap-3 md:grid md:grid-cols-2">
+                <button onClick={() => addToBag()} className="ak-btn-outline border-primary py-3.5 text-base">
+                  <ShoppingBag className="size-5" /> Add to bag
+                </button>
+                <button onClick={() => addToBag(true)} className="ak-btn-primary py-3.5 text-base">
+                  Buy now
+                </button>
+              </div>
+            )}
             <WhatsAppEnquiryButton productName={product.title} price={product.sale_price} className="mt-3 w-full py-3.5 text-base" />
 
             <ul className="mt-8 grid gap-3 text-sm">
@@ -372,10 +413,15 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {(related.data?.length ?? 0) > 0 && (
+        <ProductReviews reviews={reviews.data} loading={reviews.loading} />
+
+        {(related.data?.products.length ?? 0) > 0 && (
           <section className="mt-20">
-            <SectionHeading eyebrow="Complete the look" title="You may also love" />
-            <ProductGrid products={related.data} loading={related.loading} />
+            <SectionHeading
+              eyebrow="Complete the look"
+              title={related.data?.together ? 'Often bought together' : 'You may also love'}
+            />
+            <ProductGrid products={related.data?.products} loading={related.loading} />
           </section>
         )}
       </div>
@@ -387,17 +433,20 @@ export default function ProductPage() {
             <p className="text-lg leading-none font-bold">{formatINR(product.sale_price)}</p>
             <p className="text-[11px] text-emerald-700">{formatINR(upiPrice)} with UPI</p>
           </div>
-          <button
-            onClick={() => addToBag()}
-            disabled={soldOut}
-            className="ak-btn-outline ml-auto shrink-0 border-primary px-3 py-3"
-            aria-label="Add to bag"
-          >
-            <ShoppingBag className="size-5" />
-          </button>
-          <button onClick={() => addToBag(true)} disabled={soldOut} className="ak-btn-primary min-w-0 flex-1 px-3 py-3">
-            {soldOut ? 'Sold out' : 'Buy now'}
-          </button>
+          {soldOut ? (
+            <div className="ml-auto min-w-0 flex-1">
+              <StockAlertButton productId={product.id} className="px-3 py-3 text-sm" />
+            </div>
+          ) : (
+            <>
+              <button onClick={() => addToBag()} className="ak-btn-outline ml-auto shrink-0 border-primary px-3 py-3" aria-label="Add to bag">
+                <ShoppingBag className="size-5" />
+              </button>
+              <button onClick={() => addToBag(true)} className="ak-btn-primary min-w-0 flex-1 px-3 py-3">
+                Buy now
+              </button>
+            </>
+          )}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Ban, BadgeCheck, ChevronDown, Download, ExternalLink, Gift, HandCoins, Loader2, Phone, RefreshCw, Search, Send, Truck } from 'lucide-react'
+import { Ban, BadgeCheck, ChevronDown, Download, ExternalLink, Gift, HandCoins, Loader2, Phone, RefreshCw, Search, Send, Star, Truck } from 'lucide-react'
 import { toast } from '@/components/ui/Toaster'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { PAYMENT_RULES } from '@/config/site'
@@ -9,6 +9,8 @@ import { sendTrackingNotification } from '@/integrations/whatsappNotify'
 import { datedFilename, downloadCsv, ordersToCsv } from '@/lib/csv'
 import { cn, formatDate, formatINR, safeHttpUrl } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
+import { SITE_URL } from '@/lib/seo'
+import { whatsappLink } from '@/lib/whatsapp'
 import { exportOrders, listOrders, ORDER_TRANSITIONS, setCodBlocked, updateOrder } from '@/services/admin'
 import { amountDueNow } from '@/services/orders'
 import { useAdminStore } from '@/stores/useAdminStore'
@@ -30,6 +32,10 @@ const STATUS_TONE: Record<OrderStatus, string> = {
   CANCELLED: 'bg-red-100 text-red-700',
 }
 const label = (s: string) => s.replaceAll('_', ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+
+const reviewRequestText = (o: Order) =>
+  `Namaste ${o.customer_name.split(' ')[0]} garu 🙏 Hope you loved your Alankrita Jewels order ${o.order_number}! ` +
+  `If you have a minute, please share a review (a photo wearing it would be lovely): ${SITE_URL}/orders — open "My orders" and tap "Write a review". Thank you!`
 
 export default function OrdersPage() {
   const { filters, setFilter, resetFilters } = useAdminStore()
@@ -390,6 +396,16 @@ function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid, onC
         >
           Send WhatsApp Tracking Notification
         </ActionButton>
+        {o.order_status === 'DELIVERED' && (
+          <a
+            href={whatsappLink(reviewRequestText(o), o.customer_phone.replace(/\D/g, ''))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-50"
+          >
+            <Star className="size-4" /> Ask for a review on WhatsApp
+          </a>
+        )}
       </div>
 
       {open && (

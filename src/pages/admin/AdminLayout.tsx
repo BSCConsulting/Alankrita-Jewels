@@ -1,6 +1,19 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, Outlet } from 'react-router'
-import { FileSpreadsheet, LayoutDashboard, Loader2, LogOut, Menu, Package, PlusCircle, ShoppingCart, X } from 'lucide-react'
+import {
+  BellRing,
+  FileSpreadsheet,
+  LayoutDashboard,
+  Loader2,
+  LogOut,
+  Menu,
+  MessageSquareHeart,
+  Package,
+  PlusCircle,
+  ShoppingCart,
+  TicketPercent,
+  X,
+} from 'lucide-react'
 import { isSupabaseConfigured, supabase } from '@/lib/supabase'
 import { cn } from '@/lib/format'
 import { useSeo } from '@/lib/seo'
@@ -11,6 +24,9 @@ import AdminLogin from './AdminLogin'
 const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/orders', label: 'Orders', icon: ShoppingCart },
+  { to: '/admin/reviews', label: 'Reviews', icon: MessageSquareHeart },
+  { to: '/admin/offers', label: 'Offers & Gift Cards', icon: TicketPercent },
+  { to: '/admin/stock-alerts', label: 'Stock Alerts', icon: BellRing },
   { to: '/admin/products', label: 'Products', icon: Package, end: true },
   { to: '/admin/products/new', label: 'Add Product', icon: PlusCircle },
   { to: '/admin/products/bulk', label: 'Bulk Upload', icon: FileSpreadsheet },

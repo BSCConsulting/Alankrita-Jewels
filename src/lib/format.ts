@@ -5,6 +5,8 @@ export const formatINR = (amount: number) => inr.format(amount)
 export const formatDate = (iso: string) =>
   new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
+export const formatDay = (iso: string) => new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+
 export const slugify = (value: string) =>
   value
     .toLowerCase()
@@ -21,6 +23,9 @@ export function normalizeIndianMobile(input: string): string | null {
 }
 
 export const maskPhone = (e164: string) => e164.replace(/^\+91(\d{5})(\d{5})$/, '+91 $1 $2')
+
+/** "ABCD1234WXYZ" → "ABCD-1234-WXYZ", the form printed on gift cards. */
+export const formatGiftCardCode = (code: string) => code.replace(/(.{4})(?=.)/g, '$1-')
 
 /** The URL if it is a well-formed http(s) link, otherwise null — keeps javascript:/data: links out of hrefs. */
 export function safeHttpUrl(value: string | null | undefined): string | null {

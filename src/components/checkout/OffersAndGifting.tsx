@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Gift, Loader2, TicketPercent, X } from 'lucide-react'
 import { OFFER_RULES } from '@/config/site'
-import { formatINR } from '@/lib/format'
+import { formatGiftCardCode, formatINR } from '@/lib/format'
 import type { CouponRule, OrderTotals } from '@/lib/pricing'
 import { toCustomerMessage } from '@/lib/supabase'
 import { checkCoupon, checkGiftCard, type CodeCheck } from '@/services/orders'
@@ -52,7 +52,7 @@ export function OffersAndGifting(props: Props) {
       <CodeField
         label="Gift card"
         placeholder="12-character code"
-        applied={giftCard ? `${giftCard.code} · ${formatINR(totals.giftCardAmount)} used of ${formatINR(giftCard.balance)}` : null}
+        applied={giftCard ? `${formatGiftCardCode(giftCard.code)} · ${formatINR(totals.giftCardAmount)} used of ${formatINR(giftCard.balance)}` : null}
         check={checkGiftCard}
         onApply={props.onGiftCard}
         onRemove={() => props.onGiftCard(null)}
@@ -156,7 +156,7 @@ function CodeField<T>({
           id={`code-${label}`}
           className="ak-input uppercase placeholder:normal-case"
           value={code}
-          maxLength={20}
+          maxLength={30}
           autoComplete="off"
           autoCapitalize="characters"
           placeholder={placeholder}

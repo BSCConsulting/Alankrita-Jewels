@@ -3,7 +3,7 @@ import { ArrowRight, Crown, Sparkles } from 'lucide-react'
 import { CollectionTiles } from '@/components/home/CollectionTiles'
 import { Hero } from '@/components/home/Hero'
 import { ReelStrip } from '@/components/home/ReelStrip'
-import { REVIEWS, Testimonials } from '@/components/home/Testimonials'
+import { Testimonials, useTestimonials } from '@/components/home/Testimonials'
 import { TrustBar } from '@/components/home/TrustBar'
 import { ProductGrid } from '@/components/product/ProductGrid'
 import { JsonLd } from '@/components/seo/JsonLd'
@@ -26,6 +26,7 @@ export default function HomePage() {
 
   const featured = useAsync(() => fetchProducts({ jewelleryTypes: types, limit: 8 }), [theme])
   const reels = useAsync(() => fetchProducts({ featured: true }), [])
+  const testimonials = useTestimonials()
 
   useSeo({
     title: `${SITE.name} | 1 Gram Gold, Vaddanam & Anti-Tarnish Jewellery — Hyderabad, Vijayawada, Vizag`,
@@ -90,10 +91,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {REVIEWS.length > 0 && (
+      {testimonials.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 pt-16 sm:px-6">
           <SectionHeading eyebrow="Love from AP & Telangana" title="Worn at every celebration" />
-          <Testimonials />
+          <Testimonials cards={testimonials} />
         </section>
       )}
     </>

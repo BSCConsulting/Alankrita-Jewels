@@ -55,7 +55,8 @@ export function normalizeOrder(row: Record<string, unknown>): Order {
 export const amountDueNow = (order: Pick<Order, 'payment_mode' | 'final_amount' | 'balance_due_on_delivery'>) =>
   Math.max(0, order.final_amount - order.balance_due_on_delivery)
 
-export const normalizeCode = (code: string | null | undefined) => (code ?? '').trim().toUpperCase() || null
+/** Codes are shared as "ABCD-EFGH-JKLM"; spaces and dashes are ignored. */
+export const normalizeCode = (code: string | null | undefined) => (code ?? '').replace(/[\s-]/g, '').toUpperCase() || null
 
 export type CodeCheck<T> = { valid: true; value: T } | { valid: false; message: string }
 

@@ -20,6 +20,9 @@ const AdminProductsPage = lazy(() => import('@/pages/admin/AdminProductsPage'))
 const ProductFormPage = lazy(() => import('@/pages/admin/ProductFormPage'))
 const BulkUploadPage = lazy(() => import('@/pages/admin/BulkUploadPage'))
 const OrdersPage = lazy(() => import('@/pages/admin/OrdersPage'))
+const ReviewsPage = lazy(() => import('@/pages/admin/ReviewsPage'))
+const OffersPage = lazy(() => import('@/pages/admin/OffersPage'))
+const StockAlertsPage = lazy(() => import('@/pages/admin/StockAlertsPage'))
 
 const suspend = (node: ReactNode) => (
   <Suspense fallback={<Loader2 className="mx-auto my-24 size-8 animate-spin text-ink-muted" />}>{node}</Suspense>
@@ -49,6 +52,9 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: suspend(<AdminDashboard />) },
       { path: 'orders', element: suspend(<OrdersPage />) },
+      { path: 'reviews', element: suspend(<ReviewsPage />) },
+      { path: 'offers', element: suspend(<OffersPage />) },
+      { path: 'stock-alerts', element: suspend(<StockAlertsPage />) },
       { path: 'products', element: suspend(<AdminProductsPage />) },
       { path: 'products/new', element: suspend(<ProductFormPage />) },
       { path: 'products/bulk', element: suspend(<BulkUploadPage />) },

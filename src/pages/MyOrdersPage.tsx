@@ -1,14 +1,16 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { ChevronRight, Loader2, LogOut, PackageSearch } from 'lucide-react'
+import { ChevronRight, Loader2, LogOut, PackageSearch, Star } from 'lucide-react'
 import { MobileVerificationStep } from '@/components/checkout/MobileVerificationStep'
+import { ReviewForm } from '@/components/reviews/ReviewForm'
 import { useAsync } from '@/hooks/useAsync'
 import { cn, formatDate, formatINR, maskPhone } from '@/lib/format'
 import { useSeo } from '@/lib/seo'
 import { amountDueNow, fetchMyOrders } from '@/services/orders'
+import { fetchMyUnpublishedReviews } from '@/services/reviews'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { useCheckoutStore } from '@/stores/useCheckoutStore'
-import type { Order } from '@/types'
+import type { Order, ReviewStatus } from '@/types'
 
 const STATUS: Record<Order['order_status'], { label: string; tone: string }> = {
   PLACED: { label: 'Placed', tone: 'bg-slate-100 text-slate-700' },
@@ -63,7 +65,14 @@ export default function MyOrdersPage() {
 }
 
 function OrderList({ phone }: { phone: string | null }) {
+  const userId = useAuthStore((s) => s.userId)
   const { data, loading, error } = useAsync(() => fetchMyOrders(phone), [phone])
+  const [reviewed, setReviewed] = useState<Map<string, ReviewStatus>>(new Map())
+  const [reviewing, setReviewing] = useState<{ productId: string; title: string } | null>(null)
+
+  useEffect(() => {
+    fetchMyUnpublishedReviews(userId).then(setReviewed, () => {})
+  }, [userId])
 
   if (loading) return <Loader2 className="mx-auto mt-16 size-8 animate-spin text-ink-muted" />
   if (error) return <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">Couldn’t load your orders: {error.message}</p>
@@ -84,11 +93,61 @@ function OrderList({ phone }: { phone: string | null }) {
           {data.map((o) => (
             <li key={o.id}>
               <OrderRow order={o} />
+              {o.order_status === 'DELIVERED' && (
+                <ReviewStrip order={o} reviewed={reviewed} onReview={(productId, title) => setReviewing({ productId, title })} />
+              )}
             </li>
           ))}
         </ul>
       )}
+      {reviewing && (
+        <ReviewForm
+          open
+          productId={reviewing.productId}
+          productTitle={reviewing.title}
+          onClose={() => setReviewing(null)}
+          onSubmitted={() => setReviewed((m) => new Map(m).set(reviewing.productId, 'pending'))}
+        />
+      )}
     </>
+  )
+}
+
+const REVIEW_STATE: Partial<Record<ReviewStatus, string>> = {
+  pending: 'Review received, awaiting approval',
+  rejected: 'Review not published',
+}
+
+function ReviewStrip({
+  order,
+  reviewed,
+  onReview,
+}: {
+  order: Order
+  reviewed: Map<string, ReviewStatus>
+  onReview: (productId: string, title: string) => void
+}) {
+  // One row per piece, even if it was bought in two sizes.
+  const pieces = [...new Map((order.items ?? []).filter((i) => i.product_id).map((i) => [i.product_id!, i.product_title])).entries()]
+  if (!pieces.length) return null
+  return (
+    <ul className="-mt-2 space-y-2 rounded-b-2xl border border-t-0 border-line bg-surface-muted/60 px-4 pt-4 pb-3">
+      {pieces.map(([productId, title]) => {
+        const state = reviewed.get(productId)
+        return (
+          <li key={productId} className="flex items-center justify-between gap-3 text-sm">
+            <span className="min-w-0 truncate">{title}</span>
+            {state && REVIEW_STATE[state] ? (
+              <span className="shrink-0 text-xs text-ink-muted">{REVIEW_STATE[state]}</span>
+            ) : (
+              <button type="button" onClick={() => onReview(productId, title)} className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline">
+                <Star className="size-3.5" /> Write a review
+              </button>
+            )}
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
