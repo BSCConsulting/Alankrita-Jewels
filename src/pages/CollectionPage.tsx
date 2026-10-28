@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { ChevronRight, SlidersHorizontal } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
+import { FilterBar, NoMatches, useProductFilters } from '@/components/product/FilterBar'
+import { clearedFilters } from '@/lib/filters'
 import { ProductGrid } from '@/components/product/ProductGrid'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { categoryPath, COLLECTION_CONTENT } from '@/config/collections'
@@ -12,15 +13,12 @@ import { fetchCategories, fetchProducts } from '@/services/catalog'
 import { useRouteTheme } from '@/theme/ThemeProvider'
 import NotFoundPage from './NotFoundPage'
 
-type Sort = 'featured' | 'price-asc' | 'price-desc' | 'newest'
-
 export default function CollectionPage() {
   const { slug = '' } = useParams()
-  const [sort, setSort] = useState<Sort>('featured')
-  const [inStockOnly, setInStockOnly] = useState(false)
 
   const categories = useAsync(() => fetchCategories(), [])
   const products = useAsync(() => fetchProducts({ categorySlug: slug }), [slug])
+  const { filters, setFilters, shown } = useProductFilters(products.data)
 
   const category = categories.data?.find((c) => c.slug === slug)
   const parent = category?.parent_id ? categories.data?.find((c) => c.id === category.parent_id) : undefined
@@ -36,15 +34,6 @@ export default function CollectionPage() {
     path,
     image: products.data?.[0]?.media[0]?.url,
   })
-
-  const sorted = useMemo(() => {
-    let list = [...(products.data ?? [])]
-    if (inStockOnly) list = list.filter((p) => p.in_stock && p.stock_count > 0)
-    if (sort === 'price-asc') list.sort((a, b) => a.sale_price - b.sale_price)
-    if (sort === 'price-desc') list.sort((a, b) => b.sale_price - a.sale_price)
-    if (sort === 'newest') list.sort((a, b) => b.created_at.localeCompare(a.created_at))
-    return list
-  }, [products.data, sort, inStockOnly])
 
   if (categories.data && !category) return <NotFoundPage />
 
@@ -68,7 +57,7 @@ export default function CollectionPage() {
               url: `${SITE_URL}${path}`,
               mainEntity: {
                 '@type': 'ItemList',
-                itemListElement: sorted.slice(0, 20).map((p, i) => ({
+                itemListElement: (products.data ?? []).slice(0, 20).map((p, i) => ({
                   '@type': 'ListItem',
                   position: i + 1,
                   url: `${SITE_URL}/product/${p.slug}`,
@@ -125,27 +114,13 @@ export default function CollectionPage() {
           </div>
         )}
 
-        <div className="flex flex-wrap items-center justify-between gap-3 py-6">
-          <p className="text-sm text-ink-muted">{products.loading ? 'Loading designs…' : `${sorted.length} ${sorted.length === 1 ? 'design' : 'designs'}`}</p>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 py-2 text-sm">
-              <input type="checkbox" checked={inStockOnly} onChange={(e) => setInStockOnly(e.target.checked)} className="size-4 accent-[var(--ak-primary)]" />
-              In stock
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <SlidersHorizontal className="size-4" />
-              <span className="sr-only">Sort by</span>
-              <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} className="rounded-md border border-line bg-surface px-2 py-1.5 text-sm">
-                <option value="featured">Featured</option>
-                <option value="price-asc">Price: Low to High</option>
-                <option value="price-desc">Price: High to Low</option>
-                <option value="newest">Newest</option>
-              </select>
-            </label>
-          </div>
-        </div>
+        <FilterBar products={products.data} shown={shown} filters={filters} onChange={setFilters} loading={products.loading} />
 
-        <ProductGrid products={products.data ? sorted : undefined} loading={products.loading} error={products.error} />
+        {shown && shown.length === 0 && (products.data?.length ?? 0) > 0 ? (
+          <NoMatches onClear={() => setFilters(clearedFilters(filters))} />
+        ) : (
+          <ProductGrid products={shown} loading={products.loading} error={products.error} />
+        )}
 
         {content?.seoCopy && (
           <section className="mt-16 rounded-xl border border-line bg-surface-muted/50 p-6 text-sm leading-relaxed text-ink-muted sm:p-8">

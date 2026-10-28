@@ -3,14 +3,18 @@ import { Minus, Plus, ShieldCheck, ShoppingBag, Trash2, Truck, X } from 'lucide-
 import { Overlay } from '@/components/ui/Overlay'
 import { PAYMENT_RULES } from '@/config/site'
 import { formatINR } from '@/lib/format'
-import { computeTotals } from '@/lib/pricing'
+import { bundlePieces, computeTotals, nextBundleStep, nextReward } from '@/lib/pricing'
 import { lineLimit, toPricedLines, useCartStore } from '@/stores/useCartStore'
 
 export function CartDrawer() {
   const { items, isOpen, close, setQuantity, remove } = useCartStore()
   const navigate = useNavigate()
-  const totals = computeTotals(toPricedLines(items), null)
-  const upiSaving = Math.round(totals.subtotal * PAYMENT_RULES.prepaidDiscountRate)
+  const lines = toPricedLines(items)
+  const totals = computeTotals(lines, null)
+  const upiSaving = computeTotals(lines, 'PREPAID_UPI').prepaidDiscount
+  const reward = nextReward(totals.subtotal, totals.offer?.amount ?? 0)
+  const pieces = bundlePieces(lines)
+  const setStep = pieces > 0 ? nextBundleStep(pieces) : null
 
   return (
     <Overlay open={isOpen} onClose={close} label="Shopping bag" placement="right">
@@ -75,8 +79,26 @@ export function CartDrawer() {
             </ul>
 
             <div className="space-y-3 border-t border-line bg-surface-muted/60 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+              {(reward || setStep) && (
+                <div className="space-y-1 rounded-lg bg-accent/10 px-3 py-2 text-xs">
+                  {reward && (
+                    <p>
+                      Add <strong>{formatINR(reward.remaining)}</strong> more to get {reward.reward}.
+                    </p>
+                  )}
+                  {setStep && (
+                    <p>
+                      Add {setStep.more} more traditional {setStep.more === 1 ? 'piece' : 'pieces'} to save {setStep.percent}% on your set.{' '}
+                      <Link to="/bridal-set" onClick={close} className="font-semibold text-primary underline underline-offset-2">
+                        Build your set
+                      </Link>
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="rounded-lg border border-dashed border-emerald-600/40 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800">
-                Pay via UPI at checkout & save an extra {formatINR(upiSaving)} (5% Shubha Aarambham offer)
+                Pay via UPI at checkout & save an extra {formatINR(upiSaving)} ({Math.round(PAYMENT_RULES.prepaidDiscountRate * 100)}% Shubha Aarambham
+                offer)
               </div>
               <dl className="space-y-1 text-sm">
                 <div className="flex justify-between text-ink-muted">
@@ -87,13 +109,25 @@ export function CartDrawer() {
                   <dt>You save</dt>
                   <dd>−{formatINR(totals.productSavings)}</dd>
                 </div>
+                {totals.offer && (
+                  <div className="flex justify-between text-emerald-700">
+                    <dt>{totals.offer.label}</dt>
+                    <dd>−{formatINR(totals.offer.amount)}</dd>
+                  </div>
+                )}
+                {totals.freeGift && (
+                  <div className="flex justify-between text-emerald-700">
+                    <dt>Free {totals.freeGift.toLowerCase()}</dt>
+                    <dd>FREE</dd>
+                  </div>
+                )}
                 <div className="flex justify-between text-ink-muted">
                   <dt>Insured shipping</dt>
                   <dd>FREE</dd>
                 </div>
                 <div className="flex justify-between pt-1 text-base font-semibold">
                   <dt>Subtotal</dt>
-                  <dd>{formatINR(totals.subtotal)}</dd>
+                  <dd>{formatINR(totals.orderTotal)}</dd>
                 </div>
               </dl>
               <button

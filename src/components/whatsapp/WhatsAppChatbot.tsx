@@ -28,8 +28,9 @@ export function WhatsAppChatbot() {
   const lastQuestion = useRef<HTMLDivElement>(null)
   const t = CHAT_UI[lang]
 
-  // Product pages have a sticky "Add to bag" bar on mobile; keep the launcher above it.
+  // Product pages have a sticky "Add to bag" bar on mobile, and the bridal builder has one on every screen; keep the launcher above them.
   const liftForBar = pathname.startsWith('/product/')
+  const liftForSetBar = pathname === '/bridal-set'
 
   useEffect(() => {
     if (sessionStorage.getItem(TEASER_KEY)) return
@@ -72,11 +73,15 @@ export function WhatsAppChatbot() {
       <div
         className={cn(
           'fixed right-4 z-40 flex items-end gap-2',
-          liftForBar ? 'bottom-[calc(5.75rem+env(safe-area-inset-bottom))] md:bottom-5' : 'bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-5',
+          liftForSetBar
+            ? 'bottom-[calc(8rem+env(safe-area-inset-bottom))] sm:bottom-24'
+            : liftForBar
+              ? 'bottom-[calc(5.75rem+env(safe-area-inset-bottom))] md:bottom-5'
+              : 'bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-5',
         )}
       >
         {teaser && !open && (
-          <div className="ak-card animate-slide-up relative mb-1 max-w-[15rem] py-3 pr-8 pl-3.5 text-sm text-ink" lang={lang}>
+          <div className="ak-card animate-slide-up relative mb-1 bg-bg max-w-[15rem] py-3 pr-8 pl-3.5 text-sm text-ink" lang={lang}>
             <button type="button" onClick={openChat} className="text-left">
               <span className="block font-semibold">Namaste 🙏</span>
               <span className="text-ink-muted">{t.teaser}</span>

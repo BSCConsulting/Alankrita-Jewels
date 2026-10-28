@@ -14,6 +14,8 @@ const OrderSuccessPage = lazy(() => import('@/pages/OrderSuccessPage'))
 const PolicyPage = lazy(() => import('@/pages/PolicyPage'))
 const SearchPage = lazy(() => import('@/pages/SearchPage'))
 const MyOrdersPage = lazy(() => import('@/pages/MyOrdersPage'))
+const WishlistPage = lazy(() => import('@/pages/WishlistPage'))
+const BridalSetPage = lazy(() => import('@/pages/BridalSetPage'))
 const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'))
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
 const AdminProductsPage = lazy(() => import('@/pages/admin/AdminProductsPage'))
@@ -41,6 +43,8 @@ const router = createBrowserRouter([
       { path: 'order/:orderNumber', element: suspend(<OrderSuccessPage />) },
       { path: 'orders', element: suspend(<MyOrdersPage />) },
       { path: 'search', element: suspend(<SearchPage />) },
+      { path: 'wishlist', element: suspend(<WishlistPage />) },
+      { path: 'bridal-set', element: suspend(<BridalSetPage />) },
       { path: 'policies/:slug', element: suspend(<PolicyPage />) },
       { path: 'contact', element: suspend(<PolicyPage slug="contact" />) },
       { path: '*', element: <NotFoundPage /> },

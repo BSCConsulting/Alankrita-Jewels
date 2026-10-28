@@ -7,6 +7,7 @@ import { ArrowLeft, Film, ImagePlus, Link2, Loader2, Star, Trash2, X } from 'luc
 import { toast } from '@/components/ui/Toaster'
 import { JEWELLERY_TYPE_LABEL, THEME_BY_JEWELLERY_TYPE } from '@/config/collections'
 import { useAsync } from '@/hooks/useAsync'
+import { OCCASION_LABEL, STONE_LABEL } from '@/lib/filters'
 import { cn, slugify } from '@/lib/format'
 import { videoDuration } from '@/lib/media'
 import { toErrorMessage } from '@/lib/supabase'
@@ -62,8 +63,6 @@ interface ImageDraft {
   file?: File
 }
 
-const OCCASION_LABEL: Record<Occasion, string> = { wedding: 'Wedding', festival: 'Festival', daily: 'Daily wear', office: 'Office', party: 'Party' }
-const STONE_LABEL: Record<Stone, string> = { kempu: 'Kempu (ruby red)', emerald: 'Emerald green', pearl: 'Pearl', cz: 'CZ / American diamond', plain: 'Plain gold' }
 type ReelDraft = { url: string; file?: File } | null
 
 /** Keyed by id so moving from "edit" to "add product" starts from a clean form. */

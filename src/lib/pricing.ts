@@ -76,6 +76,15 @@ export function bundleRate(pieces: number): number {
   return rate
 }
 
+/** Largest bridal set saving, as a whole percentage (for banners). */
+export const BRIDAL_MAX_PERCENT = Math.round(Math.max(...OFFER_RULES.bundleSteps.map((s) => s.rate)) * 100)
+
+/** The next bridal set step this many pieces haven't reached yet, or null once the top step is reached. */
+export function nextBundleStep(pieces: number): { more: number; percent: number } | null {
+  const next = OFFER_RULES.bundleSteps.find((s) => s.minPieces > pieces)
+  return next ? { more: next.minPieces - pieces, percent: Math.round(next.rate * 100) } : null
+}
+
 export function couponDiscount(coupon: CouponRule, subtotal: number): number {
   if (subtotal < coupon.min_subtotal) return 0
   const raw = coupon.kind === 'percent' ? Math.round((subtotal * coupon.value) / 100) : coupon.value
@@ -162,9 +171,14 @@ export function paymentModeBlocker(mode: PaymentMode, totals: OrderTotals): stri
   return null
 }
 
-/** The next automatic reward the shopper can unlock by adding to the bag, for the progress nudge. */
-export function nextReward(subtotal: number): { remaining: number; reward: string } | null {
-  const options: Array<{ at: number; reward: string }> = OFFER_RULES.tiers.map((t) => ({ at: t.minSubtotal, reward: `₹${t.discount} off` }))
+/**
+ * The next automatic reward the shopper can unlock by adding to the bag, for the progress nudge.
+ * Offers don't stack, so a tier no bigger than the offer already applied is not a reward.
+ */
+export function nextReward(subtotal: number, currentOffer = 0): { remaining: number; reward: string } | null {
+  const options: Array<{ at: number; reward: string }> = OFFER_RULES.tiers
+    .filter((t) => t.discount > currentOffer)
+    .map((t) => ({ at: t.minSubtotal, reward: `₹${t.discount} off` }))
   options.push({ at: OFFER_RULES.freeGiftMinSubtotal, reward: `a free ${OFFER_RULES.freeGift.toLowerCase()}` })
   const next = options.filter((o) => o.at > subtotal).sort((a, b) => a.at - b.at)[0]
   return next ? { remaining: next.at - subtotal, reward: next.reward } : null

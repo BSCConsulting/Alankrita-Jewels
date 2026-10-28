@@ -3,8 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router'
 import { BadgeIndianRupee, ChevronRight, Minus, Play, Plus, ShieldCheck, ShoppingBag, Truck, Video, Zap } from 'lucide-react'
 import { ProductBadges } from '@/components/product/ProductBadges'
 import { ProductGrid } from '@/components/product/ProductGrid'
+import { RecentlyViewed } from '@/components/product/RecentlyViewed'
 import { ReelModal } from '@/components/product/ReelModal'
 import { StockAlertButton } from '@/components/product/StockAlertButton'
+import { WishlistButton } from '@/components/product/WishlistButton'
 import { ProductReviews } from '@/components/reviews/ProductReviews'
 import { Stars } from '@/components/reviews/Stars'
 import { WhatsAppEnquiryButton } from '@/components/product/WhatsAppEnquiryButton'
@@ -32,6 +34,7 @@ import type { Product } from '@/types'
 import { fetchProductReviews, summarize } from '@/services/reviews'
 import { toast } from '@/components/ui/Toaster'
 import { addLimitMessage, MAX_QTY_PER_PRODUCT, useCartStore } from '@/stores/useCartStore'
+import { useRecentlyViewedStore } from '@/stores/useWishlistStore'
 import { useRouteTheme } from '@/theme/ThemeProvider'
 import NotFoundPage from './NotFoundPage'
 
@@ -77,6 +80,11 @@ export default function ProductPage() {
   const [activeImage, setActiveImage] = useState(0)
   const [reelOpen, setReelOpen] = useState(false)
   const gallery = useRef<HTMLDivElement>(null)
+
+  const remember = useRecentlyViewedStore((s) => s.remember)
+  useEffect(() => {
+    if (product) remember(product.id)
+  }, [product, remember])
 
   useEffect(() => {
     setSize(product?.available_sizes.length === 1 ? product.available_sizes[0] : null)
@@ -209,6 +217,7 @@ export default function ProductPage() {
               <div className="pointer-events-none absolute top-3 left-3">
                 <ProductBadges product={product} />
               </div>
+              <WishlistButton productId={product.id} title={product.title} className="absolute top-3 right-3 size-10" />
               {reel && (
                 <button
                   onClick={() => setReelOpen(true)}
@@ -424,6 +433,8 @@ export default function ProductPage() {
             <ProductGrid products={related.data?.products} loading={related.loading} />
           </section>
         )}
+
+        <RecentlyViewed excludeId={product.id} className="mt-20" />
       </div>
 
       {/* Sticky mobile purchase bar */}

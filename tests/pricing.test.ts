@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { amountDueNow, isPayable } from '../functions/_lib/supabase'
 import { OFFER_RULES, PAYMENT_RULES } from '../src/config/site'
-import { bestOffer, bundlePieces, computeTotals, couponDiscount, discountPercent, nextReward, paymentModeBlocker, tierDiscount, type CouponRule, type PricedLine } from '../src/lib/pricing'
+import {
+  BRIDAL_MAX_PERCENT,
+  bestOffer,
+  bundlePieces,
+  computeTotals,
+  couponDiscount,
+  discountPercent,
+  nextBundleStep,
+  nextReward,
+  paymentModeBlocker,
+  tierDiscount,
+  type CouponRule,
+  type PricedLine,
+} from '../src/lib/pricing'
 
 const lines: PricedLine[] = [
   { mrp: 2000, sale_price: 1499, quantity: 2 },
@@ -115,6 +128,19 @@ describe('offers', () => {
     expect(nextReward(2000)).toEqual({ remaining: 499, reward: '₹150 off' })
     expect(nextReward(3000)).toEqual({ remaining: 999, reward: `a free ${OFFER_RULES.freeGift.toLowerCase()}` })
     expect(nextReward(50_000)).toBeNull()
+    // A ₹600 bridal saving already beats the ₹150 and ₹350 tiers, so the nudge skips to the free gift.
+    expect(nextReward(2000, 600)).toEqual({ remaining: 1999, reward: `a free ${OFFER_RULES.freeGift.toLowerCase()}` })
+    expect(nextReward(5000, 600)).toEqual({ remaining: 4999, reward: '₹800 off' })
+  })
+})
+
+describe('bridal set builder hints', () => {
+  it('names the next step and stops at the top one', () => {
+    expect(nextBundleStep(0)).toEqual({ more: 3, percent: 7 })
+    expect(nextBundleStep(2)).toEqual({ more: 1, percent: 7 })
+    expect(nextBundleStep(3)).toEqual({ more: 2, percent: 12 })
+    expect(nextBundleStep(5)).toBeNull()
+    expect(BRIDAL_MAX_PERCENT).toBe(12)
   })
 })
 

@@ -15,6 +15,7 @@ import { fetchRatingSummaries } from '@/services/reviews'
 import { ProductBadges } from './ProductBadges'
 import { ReelModal } from './ReelModal'
 import { WhatsAppEnquiryButton } from './WhatsAppEnquiryButton'
+import { WishlistButton } from './WishlistButton'
 
 export function ProductCard({ product, eager = false }: { product: Product; eager?: boolean }) {
   const scroller = useRef<HTMLDivElement>(null)
@@ -114,6 +115,8 @@ export function ProductCard({ product, eager = false }: { product: Product; eage
             <span className="rounded-full bg-ink px-3 py-1 text-xs font-semibold text-white">Sold out</span>
           </div>
         )}
+
+        <WishlistButton productId={product.id} title={product.title} className="absolute right-2 bottom-2 size-8 sm:size-9" />
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">

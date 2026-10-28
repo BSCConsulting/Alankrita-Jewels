@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { Search } from 'lucide-react'
+import { FilterBar, NoMatches, useProductFilters } from '@/components/product/FilterBar'
 import { ProductGrid } from '@/components/product/ProductGrid'
+import { clearedFilters } from '@/lib/filters'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { useAsync } from '@/hooks/useAsync'
 import { POPULAR_SEARCHES } from '@/lib/search'
@@ -14,6 +16,7 @@ export default function SearchPage() {
   const query = params.get('q')?.trim() ?? ''
   const [input, setInput] = useState(query)
   const results = useAsync(() => (query ? searchProducts(query) : Promise.resolve([])), [query])
+  const { filters, setFilters, shown } = useProductFilters(results.data)
 
   useEffect(() => setInput(query), [query])
   useSeo({ title: query ? `“${query}” — Search` : 'Search jewellery', noindex: true })
@@ -51,18 +54,23 @@ export default function SearchPage() {
 
       {!query && <PopularSearches onPick={submit} />}
 
-      {query && (
-        <>
-          <p className="mt-8 mb-5 text-sm text-ink-muted">
-            {results.loading ? 'Searching…' : `${results.data?.length ?? 0} ${results.data?.length === 1 ? 'design' : 'designs'} for “${query}”`}
-          </p>
-          {!results.loading && !results.error && results.data?.length === 0 ? (
+      {query &&
+        (!results.loading && !results.error && results.data?.length === 0 ? (
+          <div className="mt-8">
             <NoResults query={query} onPick={submit} />
-          ) : (
-            <ProductGrid products={results.data} loading={results.loading} error={results.error} />
-          )}
-        </>
-      )}
+          </div>
+        ) : (
+          <>
+            <div className="mt-2">
+              <FilterBar products={results.data} shown={shown} filters={filters} onChange={setFilters} loading={results.loading} />
+            </div>
+            {shown && shown.length === 0 ? (
+              <NoMatches onClear={() => setFilters(clearedFilters(filters))} />
+            ) : (
+              <ProductGrid products={shown} loading={results.loading} error={results.error} />
+            )}
+          </>
+        ))}
     </div>
   )
 }

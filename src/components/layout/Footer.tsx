@@ -7,6 +7,8 @@ import { NAV_LINKS } from './Header'
 
 const POLICY_LINKS = [
   { to: '/orders', label: 'My orders' },
+  { to: '/wishlist', label: 'Wishlist' },
+  { to: '/bridal-set', label: 'Bridal set builder' },
   { to: '/search', label: 'Search' },
   { to: '/contact', label: 'Contact us' },
   { to: '/policies/shipping', label: 'Shipping' },

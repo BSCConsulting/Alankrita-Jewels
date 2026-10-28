@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router'
-import { Menu, Package, Phone, Search, ShoppingBag, X } from 'lucide-react'
+import { Crown, Heart, Menu, Package, Phone, Search, ShoppingBag, X } from 'lucide-react'
 import { COLLECTION_SLUGS, SITE } from '@/config/site'
 import { cn } from '@/lib/format'
+import { BRIDAL_MAX_PERCENT } from '@/lib/pricing'
 import { useCartCount, useCartStore } from '@/stores/useCartStore'
+import { useWishlistCount } from '@/stores/useWishlistStore'
 import { Overlay } from '@/components/ui/Overlay'
 import { SearchOverlay } from './SearchOverlay'
 import { ThemeToggle } from './ThemeToggle'
@@ -22,6 +24,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const count = useCartCount()
+  const wishlistCount = useWishlistCount()
   const openCart = useCartStore((s) => s.open)
 
   return (
@@ -62,7 +65,7 @@ export function Header() {
             ))}
           </nav>
 
-          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+          <div className="ml-auto flex shrink-0 items-center sm:gap-2">
             <ThemeToggle variant="icon" className="md:hidden" />
             <a href={`tel:${SITE.phoneE164}`} className="hidden items-center gap-1.5 p-2 text-sm text-ink-muted hover:text-primary xl:flex">
               <Phone className="size-4" /> {SITE.phoneDisplay}
@@ -70,10 +73,23 @@ export function Header() {
             <Link to="/orders" className="hidden p-2 hover:text-primary sm:block" aria-label="My orders" title="My orders">
               <Package className="size-6" />
             </Link>
-            <button onClick={() => setSearchOpen(true)} className="p-2 hover:text-primary" aria-label="Search jewellery">
+            <Link
+              to="/wishlist"
+              className={cn('relative p-1.5 hover:text-primary sm:p-2', wishlistCount === 0 && 'hidden sm:block')}
+              aria-label={`Wishlist, ${wishlistCount} saved`}
+              title="Wishlist"
+            >
+              <Heart className="size-6" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 grid size-5 place-items-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+            <button onClick={() => setSearchOpen(true)} className="p-1.5 hover:text-primary sm:p-2" aria-label="Search jewellery">
               <Search className="size-6" />
             </button>
-            <button onClick={openCart} className="relative p-2" aria-label={`Open bag, ${count} items`}>
+            <button onClick={openCart} className="relative p-1.5 sm:p-2" aria-label={`Open bag, ${count} items`}>
               <ShoppingBag className="size-6" />
               {count > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 grid size-5 place-items-center rounded-full bg-accent text-[10px] font-bold text-accent-ink">
@@ -113,9 +129,25 @@ export function Header() {
             ))}
           </nav>
           <Link
+            to="/bridal-set"
+            onClick={() => setMenuOpen(false)}
+            className="mx-2 flex items-center justify-between rounded-lg border-t border-line px-3 py-3.5 hover:bg-surface-muted"
+          >
+            <span className="flex items-center gap-2 font-medium">
+              <Crown className="size-4" /> Build a bridal set
+            </span>
+            <span className="text-xs font-semibold text-emerald-700">Save up to {BRIDAL_MAX_PERCENT}%</span>
+          </Link>
+          <Link to="/wishlist" onClick={() => setMenuOpen(false)} className="mx-2 flex items-center justify-between rounded-lg px-3 py-3.5 hover:bg-surface-muted">
+            <span className="flex items-center gap-2 font-medium">
+              <Heart className="size-4" /> My wishlist
+            </span>
+            {wishlistCount > 0 && <span className="text-sm text-ink-muted">{wishlistCount} saved</span>}
+          </Link>
+          <Link
             to="/orders"
             onClick={() => setMenuOpen(false)}
-            className="mx-2 mb-2 flex items-center justify-between rounded-lg border-t border-line px-3 py-3.5 hover:bg-surface-muted"
+            className="mx-2 mb-2 flex items-center justify-between rounded-lg px-3 py-3.5 hover:bg-surface-muted"
           >
             <span className="flex items-center gap-2 font-medium">
               <Package className="size-4" /> My orders

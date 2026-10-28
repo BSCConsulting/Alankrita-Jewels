@@ -6,12 +6,14 @@ import { ReelStrip } from '@/components/home/ReelStrip'
 import { Testimonials, useTestimonials } from '@/components/home/Testimonials'
 import { TrustBar } from '@/components/home/TrustBar'
 import { ProductGrid } from '@/components/product/ProductGrid'
+import { RecentlyViewed } from '@/components/product/RecentlyViewed'
 import { JsonLd } from '@/components/seo/JsonLd'
 import { SectionHeading } from '@/components/ui/SectionHeading'
 import { THEME_BY_JEWELLERY_TYPE } from '@/config/collections'
 import { SITE } from '@/config/site'
 import { useAsync } from '@/hooks/useAsync'
 import { storeJsonLd } from '@/lib/jsonld'
+import { BRIDAL_MAX_PERCENT } from '@/lib/pricing'
 import { SITE_URL, useSeo } from '@/lib/seo'
 import { fetchProducts } from '@/services/catalog'
 import { useActiveTheme, useThemeStore } from '@/stores/useThemeStore'
@@ -58,6 +60,28 @@ export default function HomePage() {
         />
         <ProductGrid products={featured.data} loading={featured.loading} error={featured.error} />
       </section>
+
+      <section className="mx-auto max-w-7xl px-4 pt-12 sm:px-6">
+        <Link
+          to="/bridal-set"
+          className="ak-card flex flex-col items-start gap-4 border-accent p-6 transition hover:border-primary sm:flex-row sm:items-center sm:justify-between sm:p-8"
+        >
+          <div>
+            <p className="flex items-center gap-2 text-xs font-semibold tracking-[0.25em] text-accent uppercase">
+              <Crown className="size-4" /> Bridal set builder
+            </p>
+            <p className="mt-2 font-display text-2xl font-bold text-primary sm:text-3xl">Build your full bridal look, save up to {BRIDAL_MAX_PERCENT}%</p>
+            <p lang="te" className="mt-1 text-ink-muted">
+              వడ్డాణం, చోకర్, హారం — అన్నీ ఒకేచోట
+            </p>
+          </div>
+          <span className="ak-btn-primary shrink-0 px-6 py-3">
+            Start building <ArrowRight className="size-4" />
+          </span>
+        </Link>
+      </section>
+
+      <RecentlyViewed className="mx-auto max-w-7xl px-4 pt-16 sm:px-6" />
 
       <section className="mx-auto max-w-7xl px-4 pt-16 sm:px-6">
         <SectionHeading eyebrow="Watch before you buy" title="5-second sparkle reels" telugu="కొనే ముందు మెరుపును చూడండి" />
