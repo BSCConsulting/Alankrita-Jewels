@@ -1,11 +1,27 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { AlertTriangle, BadgeIndianRupee, BellRing, CheckCircle2, Clock, Loader2, MessageSquareHeart, PackageOpen, Send, Truck, XCircle } from 'lucide-react'
+import {
+  AlertTriangle,
+  BadgeIndianRupee,
+  BellRing,
+  CheckCircle2,
+  Clock,
+  Loader2,
+  MessageSquareHeart,
+  PackageOpen,
+  Send,
+  ShieldCheck,
+  Truck,
+  XCircle,
+} from 'lucide-react'
+import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { useAsync } from '@/hooks/useAsync'
 import { callApi } from '@/integrations/apiClient'
-import { cn, formatINR } from '@/lib/format'
+import { cn, formatDay, formatINR, maskPhone } from '@/lib/format'
+import { ENDING_SOON_DAYS } from '@/lib/guarantee'
 import { toErrorMessage } from '@/lib/supabase'
-import { fetchDashboardStats } from '@/services/admin'
+import { whatsappLink } from '@/lib/whatsapp'
+import { fetchDashboardStats, listGuaranteesEndingSoon, type ExpiringGuarantee } from '@/services/admin'
 import { productThumbnail } from '@/services/catalog'
 import { countPendingReviews } from '@/services/reviews'
 import { listPendingStockAlerts } from '@/services/stockAlerts'
@@ -74,7 +90,70 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      <GuaranteeReminders />
+
       <TelegramAlertsCard />
+    </div>
+  )
+}
+
+/** One reminder per order, listing every piece whose cover ends soon. */
+function guaranteeReminderText(pieces: ExpiringGuarantee[]) {
+  const [first] = pieces
+  const lines = pieces.map((g) => `• ${g.title}${g.size ? ` (${g.size})` : ''}: ${g.text}, ends ${formatDay(g.endsAt.toISOString())}`)
+  return [
+    `Namaste ${first.customerName}, this is Alankrita Jewels. The guarantee on ${pieces.length === 1 ? 'this piece' : 'these pieces'} from your order ${first.orderNumber} ends soon:`,
+    ...lines,
+    `If anything needs care, reply here and we'll arrange it under the guarantee.`,
+  ].join('\n')
+}
+
+function GuaranteeReminders() {
+  const { data, error } = useAsync(() => listGuaranteesEndingSoon(), [])
+  const groups = new Map<string, ExpiringGuarantee[]>()
+  for (const g of data ?? []) groups.set(g.orderNumber, [...(groups.get(g.orderNumber) ?? []), g])
+  const byOrder = [...groups.values()]
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <h2 className="flex items-center gap-2 font-semibold">
+        <ShieldCheck className="size-4 text-slate-400" /> Guarantees ending in the next {ENDING_SOON_DAYS} days
+      </h2>
+      <p className="text-sm text-slate-500">A quick WhatsApp reminder before the cover ends builds trust and brings customers back.</p>
+      {error ? (
+        <p className="mt-3 text-sm text-red-700">{error.message}</p>
+      ) : !data ? (
+        <p className="mt-3 text-sm text-slate-500">Loading…</p>
+      ) : byOrder.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-500">None right now.</p>
+      ) : (
+        <ul className="mt-3 divide-y divide-slate-100">
+          {byOrder.map((pieces) => {
+            const [first] = pieces
+            return (
+              <li key={first.orderNumber} className="flex flex-wrap items-center gap-3 py-2.5 text-sm">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">
+                    {first.customerName} <span className="font-normal text-slate-500">· {maskPhone(first.customerPhone)} · {first.orderNumber}</span>
+                  </p>
+                  {pieces.map((g) => (
+                    <p key={g.key} className="truncate text-xs text-slate-500">
+                      {g.title} — ends {formatDay(g.endsAt.toISOString())} ({g.daysLeft} {g.daysLeft === 1 ? 'day' : 'days'})
+                    </p>
+                  ))}
+                </div>
+                <a
+                  href={whatsappLink(guaranteeReminderText(pieces), first.customerPhone.replace(/\D/g, ''))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ak-btn-whatsapp px-3 py-2 text-xs"
+                >
+                  <WhatsAppIcon className="size-4" /> Remind
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }

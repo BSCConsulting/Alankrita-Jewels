@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { ChevronRight, Loader2, LogOut, PackageSearch, Star } from 'lucide-react'
+import { ChevronRight, Loader2, LogOut, PackageSearch, ShieldCheck, Star } from 'lucide-react'
 import { MobileVerificationStep } from '@/components/checkout/MobileVerificationStep'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
 import { useAsync } from '@/hooks/useAsync'
-import { cn, formatDate, formatINR, maskPhone } from '@/lib/format'
+import { cn, formatDate, formatDay, formatINR, maskPhone } from '@/lib/format'
+import { orderGuarantees } from '@/lib/guarantee'
 import { useSeo } from '@/lib/seo'
 import { amountDueNow, fetchMyOrders } from '@/services/orders'
 import { fetchMyUnpublishedReviews } from '@/services/reviews'
@@ -130,13 +131,23 @@ function ReviewStrip({
   // One row per piece, even if it was bought in two sizes.
   const pieces = [...new Map((order.items ?? []).filter((i) => i.product_id).map((i) => [i.product_id!, i.product_title])).entries()]
   if (!pieces.length) return null
+  const cover = new Map(orderGuarantees(order).map((g) => [g.productId, g]))
   return (
     <ul className="-mt-2 space-y-2 rounded-b-2xl border border-t-0 border-line bg-surface-muted/60 px-4 pt-4 pb-3">
       {pieces.map(([productId, title]) => {
         const state = reviewed.get(productId)
+        const g = cover.get(productId)
         return (
           <li key={productId} className="flex items-center justify-between gap-3 text-sm">
-            <span className="min-w-0 truncate">{title}</span>
+            <span className="min-w-0">
+              <span className="block truncate">{title}</span>
+              {g && (
+                <Link to={`/order/${order.order_number}`} className="flex items-center gap-1 text-xs text-ink-muted hover:text-primary">
+                  <ShieldCheck className="size-3.5 shrink-0" />
+                  {g.status === 'ended' ? `Guarantee ended ${formatDay(g.endsAt.toISOString())}` : `Guarantee till ${formatDay(g.endsAt.toISOString())}`}
+                </Link>
+              )}
+            </span>
             {state && REVIEW_STATE[state] ? (
               <span className="shrink-0 text-xs text-ink-muted">{REVIEW_STATE[state]}</span>
             ) : (

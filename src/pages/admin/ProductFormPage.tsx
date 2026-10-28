@@ -10,10 +10,12 @@ import { useAsync } from '@/hooks/useAsync'
 import { OCCASION_LABEL, STONE_LABEL } from '@/lib/filters'
 import { cn, slugify } from '@/lib/format'
 import { videoDuration } from '@/lib/media'
+import type { PhotoSize } from '@/lib/photoChecklist'
 import { toErrorMessage } from '@/lib/supabase'
 import { categoriesForSelect, fetchAdminProduct, saveProduct, uploadMedia, uploadProductImage, type MediaInput } from '@/services/admin'
 import { JEWELLERY_TYPES, OCCASIONS, STONES, type JewelleryType, type Occasion, type Stone } from '@/types'
 import { Toggle } from './AdminProductsPage'
+import { PhotoChecklist } from './PhotoChecklist'
 
 const PLATING_PRESETS = [
   'Micro Gold Plated',
@@ -79,6 +81,7 @@ function ProductForm({ id }: { id?: string }) {
 
   const [images, setImages] = useState<ImageDraft[]>([])
   const [thumbKey, setThumbKey] = useState<string | null>(null)
+  const [photoSizes, setPhotoSizes] = useState<Record<string, PhotoSize>>({})
   const [reel, setReel] = useState<ReelDraft>(null)
   const [reelUrlInput, setReelUrlInput] = useState('')
   const [sizeInput, setSizeInput] = useState('')
@@ -301,7 +304,15 @@ function ProductForm({ id }: { id?: string }) {
               <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                 {images.map((img) => (
                   <div key={img.key} className={cn('group relative overflow-hidden rounded-lg border-2', img.key === thumbKey ? 'border-amber-500' : 'border-transparent')}>
-                    <img src={img.url} alt="" className="aspect-square w-full object-cover" />
+                    <img
+                      src={img.url}
+                      alt=""
+                      className="aspect-square w-full object-cover"
+                      onLoad={(e) => {
+                        const { naturalWidth: width, naturalHeight: height } = e.currentTarget
+                        setPhotoSizes((m) => ({ ...m, [img.key]: { width, height } }))
+                      }}
+                    />
                     <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/50 p-1">
                       <button
                         type="button"
@@ -373,6 +384,11 @@ function ProductForm({ id }: { id?: string }) {
               )}
             </div>
             {mediaError && <p className="ak-error">{mediaError}</p>}
+            <PhotoChecklist
+              sizes={images.map((img) => photoSizes[img.key] ?? null)}
+              main={(thumbKey && photoSizes[thumbKey]) || null}
+              hasReel={reel != null}
+            />
           </Card>
         </div>
 

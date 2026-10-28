@@ -47,7 +47,7 @@ export function normalizeOrder(row: Record<string, unknown>): Order {
     gift_message: o.gift_message ?? null,
     free_gift: o.free_gift ?? null,
     delivered_at: o.delivered_at ?? null,
-    items: (o.items ?? []).map((i) => ({ ...i, unit_price: Number(i.unit_price) })),
+    items: (o.items ?? []).map((i) => ({ ...i, unit_price: Number(i.unit_price), warranty_details: i.warranty_details ?? null })),
   }
 }
 
@@ -254,6 +254,7 @@ function buildMockOrder(input: PlaceOrderInput, phone: string): Order {
       quantity: item.quantity,
       unit_price: product.sale_price,
       selected_size: item.selected_size,
+      warranty_details: product.warranty_details,
     }
   })
   if (card) card.balance -= totals.giftCardAmount

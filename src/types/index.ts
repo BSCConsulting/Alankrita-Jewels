@@ -78,6 +78,8 @@ export interface OrderItem {
   quantity: number
   unit_price: number
   selected_size: string | null
+  /** The guarantee the piece was sold with (migration 006). */
+  warranty_details: string | null
 }
 
 export interface Order {

@@ -1,3 +1,4 @@
+import { addMonths, orderGuarantees, type Guarantee } from '@/lib/guarantee'
 import { blobToDataUrl, optimizeImage } from '@/lib/media'
 import { STORAGE_BUCKET, supabase } from '@/lib/supabase'
 import type { JewelleryType, MediaType, Occasion, Order, OrderStatus, PaymentMode, PaymentStatus, Product, ProductMedia, Stone } from '@/types'
@@ -304,6 +305,45 @@ export async function exportOrders(filters: OrderFilters): Promise<Order[]> {
     all.push(...(data ?? []).map(normalizeOrder))
     if (!data || data.length < pageSize) return all
   }
+}
+
+export interface ExpiringGuarantee extends Guarantee {
+  customerName: string
+  customerPhone: string
+}
+
+/** Longest guarantee the reminder list looks back for. */
+const GUARANTEE_LOOKBACK_MONTHS = 25
+
+/** Delivered pieces whose guarantee ends within ENDING_SOON_DAYS, soonest first, so the owner can remind the customer. */
+export async function listGuaranteesEndingSoon(now = new Date()): Promise<ExpiringGuarantee[]> {
+  const since = addMonths(now, -GUARANTEE_LOOKBACK_MONTHS).toISOString()
+  let orders: Order[]
+  if (!supabase) {
+    orders = mockDb().orders.filter((o) => o.order_status === 'DELIVERED' && o.created_at >= since)
+  } else {
+    orders = []
+    const pageSize = 500
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(ORDER_SELECT)
+        .eq('order_status', 'DELIVERED')
+        .gte('created_at', since)
+        .order('created_at')
+        .range(from, from + pageSize - 1)
+      if (error) throw error
+      orders.push(...(data ?? []).map(normalizeOrder))
+      if (!data || data.length < pageSize) break
+    }
+  }
+  return orders
+    .flatMap((o) =>
+      orderGuarantees(o, now)
+        .filter((g) => g.status === 'ending-soon')
+        .map((g) => ({ ...g, customerName: o.customer_name, customerPhone: o.customer_phone })),
+    )
+    .sort((a, b) => a.endsAt.getTime() - b.endsAt.getTime())
 }
 
 /** Status changes an admin may make; mirrors the orders_guard_status trigger in migration 002. */

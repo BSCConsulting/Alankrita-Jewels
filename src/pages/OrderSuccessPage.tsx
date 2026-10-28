@@ -1,10 +1,11 @@
 import { Link, useParams } from 'react-router'
 import { CheckCircle2, Clock, PackageCheck, Truck, Video, XCircle } from 'lucide-react'
+import { GuaranteeCard } from '@/components/orders/GuaranteeCard'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { useAsync } from '@/hooks/useAsync'
 import { PAYMENT_RULES } from '@/config/site'
-import { formatINR } from '@/lib/format'
+import { formatDay, formatINR } from '@/lib/format'
 import { useSeo } from '@/lib/seo'
 import { whatsappLink } from '@/lib/whatsapp'
 import { amountDueNow, fetchOrderByNumber } from '@/services/orders'
@@ -24,8 +25,9 @@ export default function OrderSuccessPage() {
   const failed = order?.payment_status === 'FAILED' && !cancelled
   const dueNow = order ? amountDueNow(order) : 0
   // Cash-on-delivery orders are pending payment by design; nothing is awaited online.
-  const awaitingPayment = order?.payment_status === 'PENDING' && !cancelled && dueNow > 0
-  const payOnDelivery = order?.payment_mode === 'COD' && !cancelled
+  const delivered = order?.order_status === 'DELIVERED'
+  const awaitingPayment = order?.payment_status === 'PENDING' && !cancelled && !delivered && dueNow > 0
+  const payOnDelivery = order?.payment_mode === 'COD' && !cancelled && !delivered
 
   if (!loading && !order)
     return (
@@ -66,7 +68,9 @@ export default function OrderSuccessPage() {
                 ? 'ఈ ఆర్డర్ రద్దు చేయబడింది'
                 : failed
                   ? 'చెల్లింపు విఫలమైంది'
-                  : 'మీ ఆర్డర్ నిర్ధారించబడింది'}
+                  : delivered
+                    ? 'మీ ఆర్డర్ డెలివరీ అయింది'
+                    : 'మీ ఆర్డర్ నిర్ధారించబడింది'}
           </p>
           <p className="mt-3">
             Order <strong className="font-mono">{orderNumber}</strong>{' '}
@@ -76,9 +80,11 @@ export default function OrderSuccessPage() {
                 ? 'has been cancelled.'
                   : failed
                   ? 'is not confirmed because the payment did not go through. Message us on WhatsApp and we will help you complete it.'
-                  : payOnDelivery
-                    ? `is placed. Pay ${formatINR(order!.balance_due_on_delivery)} in cash or UPI to the courier on delivery.`
-                    : 'is confirmed.'}
+                  : delivered
+                    ? `was delivered${order!.delivered_at ? ` on ${formatDay(order!.delivered_at)}` : ''}.`
+                    : payOnDelivery
+                      ? `is placed. Pay ${formatINR(order!.balance_due_on_delivery)} in cash or UPI to the courier on delivery.`
+                      : 'is confirmed.'}
           </p>
           {failed && (
             <a
@@ -174,7 +180,7 @@ export default function OrderSuccessPage() {
                 <dd>{formatINR(order.advance_paid)}</dd>
               </div>
             )}
-            {order.balance_due_on_delivery > 0 && !cancelled && order.payment_status !== 'PAID' && (
+            {order.balance_due_on_delivery > 0 && !cancelled && !delivered && order.payment_status !== 'PAID' && (
               <div className="flex justify-between font-semibold">
                 <dt>Pay courier on delivery</dt>
                 <dd>{formatINR(order.balance_due_on_delivery)}</dd>
@@ -199,7 +205,9 @@ export default function OrderSuccessPage() {
         </div>
       )}
 
-      {order && !cancelled && !failed && (
+      {order && <GuaranteeCard order={order} />}
+
+      {order && !cancelled && !failed && !delivered && (
         <ol className="mt-8 space-y-4">
           {STEPS.map(({ icon: Icon, title, body }) => (
             <li key={title} className="flex gap-3">
@@ -219,12 +227,14 @@ export default function OrderSuccessPage() {
 
       <div className="mt-10 grid gap-3 sm:grid-cols-2">
         <a
-          href={whatsappLink(`Hi Alankrita Jewels, I just placed order ${orderNumber}.`)}
+          href={whatsappLink(
+            delivered ? `Hi Alankrita Jewels, I have a question about order ${orderNumber}.` : `Hi Alankrita Jewels, I just placed order ${orderNumber}.`,
+          )}
           target="_blank"
           rel="noopener noreferrer"
           className="ak-btn-whatsapp py-3.5"
         >
-          <WhatsAppIcon className="size-5" /> Get updates on WhatsApp
+          <WhatsAppIcon className="size-5" /> {delivered ? 'Chat with us on WhatsApp' : 'Get updates on WhatsApp'}
         </a>
         <Link to="/" className="ak-btn-outline py-3.5">
           Continue shopping
