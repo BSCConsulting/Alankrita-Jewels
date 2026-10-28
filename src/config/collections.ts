@@ -20,7 +20,7 @@ export const JEWELLERY_TYPE_LABEL: Record<JewelleryType, string> = {
 /** Parent slug segment used in nested URLs, e.g. /collections/1-gram-gold/choker-sets */
 const shortSlug = (slug: string) => slug.replace(/-jewellery$/, '')
 
-export function categoryPath(category: Pick<Category, 'slug' | 'parent_id'>, all: Category[]): string {
+export function categoryPath(category: Pick<Category, 'slug' | 'parent_id'>, all: Pick<Category, 'id' | 'slug'>[]): string {
   const parent = category.parent_id ? all.find((c) => c.id === category.parent_id) : undefined
   return parent ? `/collections/${shortSlug(parent.slug)}/${category.slug}` : `/collections/${category.slug}`
 }
@@ -42,7 +42,7 @@ export const COLLECTION_CONTENT: Record<string, CollectionContent> = {
     intro: 'Prestige, auspiciousness and the authentic look of 22K gold — without the exorbitant cost.',
     seoCopy: [
       'Our 1 gram gold jewellery is micro gold plated over a skin-friendly copper-brass alloy and sealed with anti-tarnish lacquer, giving you the warm glow of 22-carat gold for weddings, Sankranti, Varalakshmi Vratham and every family function.',
-      'Every piece ships insured from our Hyderabad studio within 24 hours, reaching Vijayawada, Visakhapatnam, Guntur, Warangal and Tirupati in 2–3 business days.',
+      'Every piece is packed and shipped insured within 1–2 business days, reaching Hyderabad, Vijayawada, Visakhapatnam, Guntur, Warangal and Tirupati in 2–3 business days.',
     ],
   },
   [COLLECTION_SLUGS.antiTarnish]: {

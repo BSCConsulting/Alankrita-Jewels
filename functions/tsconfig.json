@@ -10,7 +10,16 @@
     "isolatedModules": true,
     "resolveJsonModule": true,
     "noUnusedLocals": true,
-    "types": ["@cloudflare/workers-types"]
+    "types": ["@cloudflare/workers-types"],
+    "baseUrl": "..",
+    "paths": { "@/*": ["src/*"] }
   },
-  "include": ["./**/*.ts", "../src/lib/jsonld.ts", "../src/config/site.ts", "../src/data/catalog.json"]
+  "include": [
+    "./**/*.ts",
+    "../src/lib/jsonld.ts",
+    "../src/config/site.ts",
+    "../src/config/collections.ts",
+    "../src/types/index.ts",
+    "../src/data/catalog.json"
+  ]
 }
