@@ -2,7 +2,7 @@
 // Env bindings (server): WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_TRACKING_TEMPLATE.
 // Without them, the admin gets a wa.me deep link to send the message from the business phone.
 import { SITE } from '@/config/site'
-import { formatINR } from '@/lib/format'
+import { formatINR, safeHttpUrl } from '@/lib/format'
 import { whatsappLink } from '@/lib/whatsapp'
 import type { Order } from '@/types'
 import { callApi } from './apiClient'
@@ -12,7 +12,7 @@ export function trackingMessage(order: Order): string {
     `Namaste ${order.customer_name} 🙏`,
     `Your ${SITE.name} order ${order.order_number} has been dispatched!`,
     order.awb_number ? `AWB: ${order.awb_number}` : null,
-    order.tracking_url ? `Track: ${order.tracking_url}` : null,
+    safeHttpUrl(order.tracking_url) ? `Track: ${safeHttpUrl(order.tracking_url)}` : null,
     order.balance_due_on_delivery > 0
       ? `Please keep ${formatINR(order.balance_due_on_delivery)} ready (cash/UPI) for the courier.`
       : 'Fully prepaid — nothing to pay on delivery.',

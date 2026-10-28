@@ -15,10 +15,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   let categories: CategoryRow[]
   let products: Array<{ slug: string; updated_at?: string }>
   if (hasSupabase(env)) {
-    ;[categories, products] = await Promise.all([
-      rest<CategoryRow[]>(env, 'categories?select=id,slug,parent_id'),
-      rest<Array<{ slug: string; updated_at: string }>>(env, 'products?select=slug,updated_at'),
-    ])
+    try {
+      ;[categories, products] = await Promise.all([
+        rest<CategoryRow[]>(env, 'categories?select=id,slug,parent_id'),
+        rest<Array<{ slug: string; updated_at: string }>>(env, 'products?select=slug,updated_at'),
+      ])
+    } catch (err) {
+      // A 503 tells crawlers to retry later instead of dropping every URL from the index.
+      console.error('Sitemap lookup failed', err)
+      return new Response('Sitemap temporarily unavailable', { status: 503, headers: { 'retry-after': '3600' } })
+    }
   } else {
     const idBySlug = new Map(catalog.categories.map((c) => [c.slug, c.id]))
     categories = catalog.categories.map((c) => ({ id: c.id, slug: c.slug, parent_id: c.parent_slug ? (idBySlug.get(c.parent_slug) ?? null) : null }))

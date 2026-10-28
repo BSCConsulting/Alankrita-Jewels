@@ -7,7 +7,7 @@ import { useAsync } from '@/hooks/useAsync'
 import { createDelhiveryShipment, createShiprocketOrder } from '@/integrations/logistics'
 import { sendTrackingNotification } from '@/integrations/whatsappNotify'
 import { datedFilename, downloadCsv, ordersToCsv } from '@/lib/csv'
-import { cn, formatDate, formatINR } from '@/lib/format'
+import { cn, formatDate, formatINR, safeHttpUrl } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
 import { exportOrders, listOrders, ORDER_TRANSITIONS, updateOrder } from '@/services/admin'
 import { amountDueNow } from '@/services/orders'
@@ -80,6 +80,7 @@ export default function OrdersPage() {
   const notify = (order: Order) => {
     // Open the tab synchronously so popup blockers allow the wa.me fallback after the await.
     const fallbackTab = window.open('', '_blank')
+    if (fallbackTab) fallbackTab.opener = null
     return run(`${order.id}:WA`, async () => {
       try {
         const result = await sendTrackingNotification(order)
@@ -272,8 +273,8 @@ function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid }: O
             <>
               <p className="text-xs text-slate-500">{o.shipping_provider}</p>
               <p className="font-mono">{o.awb_number}</p>
-              {o.tracking_url && (
-                <a href={o.tracking_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-sky-700 hover:underline">
+              {safeHttpUrl(o.tracking_url) && (
+                <a href={safeHttpUrl(o.tracking_url)!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-sky-700 hover:underline">
                   Tracking <ExternalLink className="size-3" />
                 </a>
               )}

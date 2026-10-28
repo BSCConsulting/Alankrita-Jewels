@@ -31,4 +31,11 @@ export interface Env {
   TELEGRAM_CHAT_ID?: string
 }
 
+/** Simulated payments are for preview deployments only: never on the production host, even if the flag leaks into its settings. */
+export function mockPaymentsAllowed(env: Env, request: Request): boolean {
+  if (env.ALLOW_MOCK_PAYMENTS !== 'true') return false
+  if (!env.SITE_URL) return true
+  return new URL(request.url).hostname !== new URL(env.SITE_URL).hostname
+}
+
 export const siteUrl = (env: Env, request: Request) => (env.SITE_URL ?? new URL(request.url).origin).replace(/\/$/, '')

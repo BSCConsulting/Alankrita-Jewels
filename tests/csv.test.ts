@@ -89,6 +89,7 @@ describe('ordersToCsv', () => {
     expect(row.startsWith('AK-1001,')).toBe(true)
     expect(row).toContain('"1-2, Main Rd"')
     expect(row).toContain('Jhumka × 2 | Bangle (2.6) × 1')
+    expect(row).toContain(',91 90000 00000,')
     expect(row).toContain('PARTIAL_COD,PARTIAL_PAID,150,1350')
   })
 })

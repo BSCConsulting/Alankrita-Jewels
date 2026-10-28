@@ -17,6 +17,8 @@ export interface OrderRow {
   payment_status: 'PENDING' | 'PAID' | 'PARTIAL_PAID' | 'FAILED'
   order_status: 'PLACED' | 'CONFIRMED' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED'
   payment_gateway_ref: string | null
+  awb_number?: string | null
+  created_at?: string
   items?: Array<{ id: string; product_id: string | null; product_title: string; quantity: number; unit_price: number }>
 }
 
@@ -94,4 +96,19 @@ export async function markOrderPaid(env: Env, order: OrderRow, gatewayRef: strin
     }),
   })
   return rows.length > 0
+}
+
+export type SettleOutcome = 'paid' | 'already_paid' | 'refund_needed'
+
+/**
+ * Records a captured Razorpay payment. The browser's /verify call and the webhook race each other,
+ * so when the update loses we re-read the order: if this same payment already settled it there is
+ * nothing to do; otherwise (cancelled order, or a second payment for a paid order) it needs a refund.
+ */
+export async function settleCapturedPayment(env: Env, order: OrderRow, rzpOrderId: string, paymentId: string): Promise<SettleOutcome> {
+  const ref = `${rzpOrderId}/${paymentId}`
+  const paid = (o: OrderRow) => o.payment_status === 'PAID' || o.payment_status === 'PARTIAL_PAID'
+  if (!paid(order) && (await markOrderPaid(env, order, ref))) return 'paid'
+  const current = paid(order) ? order : await fetchOrder(env, order.id)
+  return current && paid(current) && current.payment_gateway_ref === ref ? 'already_paid' : 'refund_needed'
 }

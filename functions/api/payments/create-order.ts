@@ -4,7 +4,7 @@
 // Without Razorpay keys the order stays PENDING and is paid over WhatsApp/UPI ("offline"), unless
 // ALLOW_MOCK_PAYMENTS=true enables the simulated payment sheet for testing.
 import { alertNewOrder } from '../../_lib/alerts'
-import { siteUrl, type Env } from '../../_lib/env'
+import { mockPaymentsAllowed, siteUrl, type Env } from '../../_lib/env'
 import { error, json, readJson } from '../../_lib/http'
 import { amountDueNow, fetchOrder, getUserId, hasSupabase, isPayable, rest } from '../../_lib/supabase'
 
@@ -31,7 +31,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env, waitUnti
   waitUntil(alertNewOrder(env, order, siteUrl(env, request)))
 
   const amount = amountDueNow(order)
-  if (!razorpayLive) return json({ mode: env.ALLOW_MOCK_PAYMENTS === 'true' ? 'mock' : 'offline', amount })
+  if (!razorpayLive) return json({ mode: mockPaymentsAllowed(env, request) ? 'mock' : 'offline', amount })
 
   // Retrying checkout reuses the same Razorpay order, so a payment on an earlier attempt still matches.
   if (order.payment_gateway_ref?.startsWith('order_')) {

@@ -3,6 +3,8 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
   X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'; base-uri 'self'; object-src 'none'
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'sha256-k04oS/yxQGAdPLT2wBVpeq7OWLv2Wc5FTgYjFk9qdgU=' https://checkout.razorpay.com https://www.google.com https://www.gstatic.com https://apis.google.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://api.razorpay.com https://lumberjack.razorpay.com https://cloudflareinsights.com; frame-src https://api.razorpay.com https://checkout.razorpay.com https://www.google.com https://recaptcha.google.com https://alankrita-jewels.firebaseapp.com; worker-src 'self' blob:; form-action 'self' https://api.razorpay.com; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; report-uri /api/csp-report
 
 /admin/*
   X-Robots-Tag: noindex, nofollow

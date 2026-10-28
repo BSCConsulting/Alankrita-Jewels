@@ -60,7 +60,9 @@ export async function withEdgeCache(
   render: (shell: Response) => Promise<Response>,
 ): Promise<Response> {
   const { request, env, waitUntil } = context
-  const shell = await env.ASSETS.fetch(new Request(new URL('/', request.url), request))
+  // A plain GET: forwarding the visitor's Range / If-None-Match headers could return a partial or empty shell.
+  const shell = await env.ASSETS.fetch(new URL('/', request.url).toString())
+  if (shell.status !== 200) return shell
   const etag = shell.headers.get('etag')
   const cache = (caches as unknown as { default: Cache }).default
   if (!etag || !cache) return render(shell)

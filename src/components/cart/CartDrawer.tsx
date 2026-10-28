@@ -4,7 +4,7 @@ import { Overlay } from '@/components/ui/Overlay'
 import { PAYMENT_RULES } from '@/config/site'
 import { formatINR } from '@/lib/format'
 import { computeTotals } from '@/lib/pricing'
-import { toPricedLines, useCartStore } from '@/stores/useCartStore'
+import { lineLimit, toPricedLines, useCartStore } from '@/stores/useCartStore'
 
 export function CartDrawer() {
   const { items, isOpen, close, setQuantity, remove } = useCartStore()
@@ -58,7 +58,7 @@ export function CartDrawer() {
                         <span className="w-7 text-center text-sm font-semibold">{item.quantity}</span>
                         <button
                           onClick={() => setQuantity(item.key, item.quantity + 1)}
-                          disabled={item.quantity >= Math.min(item.maxQty, 10)}
+                          disabled={item.quantity >= lineLimit(items, item, item.maxQty)}
                           className="p-1.5 disabled:opacity-30"
                           aria-label="Increase quantity"
                         >

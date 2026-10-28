@@ -7,6 +7,7 @@ import { cn, formatDate, formatINR, maskPhone } from '@/lib/format'
 import { useSeo } from '@/lib/seo'
 import { amountDueNow, fetchMyOrders } from '@/services/orders'
 import { useAuthStore } from '@/stores/useAuthStore'
+import { useCheckoutStore } from '@/stores/useCheckoutStore'
 import type { Order } from '@/types'
 
 const STATUS: Record<Order['order_status'], { label: string; tone: string }> = {
@@ -35,7 +36,13 @@ export default function MyOrdersPage() {
           </p>
         </div>
         {userId && (
-          <button type="button" onClick={() => void signOut()} className="flex items-center gap-1.5 py-2 text-sm text-ink-muted hover:text-primary">
+          <button
+            type="button"
+            onClick={() => {
+              useCheckoutStore.getState().forgetDetails()
+              void signOut()
+            }}
+            className="flex items-center gap-1.5 py-2 text-sm text-ink-muted hover:text-primary">
             <LogOut className="size-4" /> Sign out
           </button>
         )}

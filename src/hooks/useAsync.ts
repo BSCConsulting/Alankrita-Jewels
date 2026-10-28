@@ -14,9 +14,13 @@ export function useAsync<T>(fn: () => Promise<T>, deps: DependencyList): AsyncSt
   const [error, setError] = useState<Error | null>(null)
   const [tick, setTick] = useState(0)
   const requestId = useRef(0)
+  const lastTick = useRef(tick)
 
   useEffect(() => {
     const id = ++requestId.current
+    // New inputs (e.g. another product's slug) must not show the previous result; a reload keeps it on screen.
+    if (lastTick.current === tick) setData(undefined)
+    lastTick.current = tick
     setLoading(true)
     setError(null)
     fn()

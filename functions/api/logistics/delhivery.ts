@@ -2,7 +2,7 @@
 // Creates a Delhivery B2C shipment (CMU API). Env: DELHIVERY_TOKEN, DELHIVERY_BASE_URL, DELHIVERY_PICKUP_NAME.
 import type { Env } from '../../_lib/env'
 import { error, json, readJson } from '../../_lib/http'
-import { DEFAULT_PARCEL, fullAddress, isValidPayload, mockShipment, tenDigitPhone, trackingUrlFor, type ShipOrderPayload } from '../../_lib/shipping'
+import { DEFAULT_PARCEL, fullAddress, loadShippableOrder, mockShipment, tenDigitPhone, trackingUrlFor, type ShipOrderPayload } from '../../_lib/shipping'
 import { requireAdmin } from '../../_lib/supabase'
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
@@ -10,8 +10,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   const denied = await requireAdmin(env, request, live)
   if (denied) return denied
 
-  const { order } = await readJson<{ order: ShipOrderPayload }>(request)
-  if (!isValidPayload(order)) return error('A complete order payload is required', 400)
+  const order = await loadShippableOrder(env, (await readJson<{ order: ShipOrderPayload }>(request)).order)
+  if (order instanceof Response) return order
   if (!live) return json(mockShipment('DELHIVERY'))
 
   const isCod = order.payment_mode === 'PARTIAL_COD'

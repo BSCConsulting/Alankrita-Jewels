@@ -8,12 +8,16 @@ import { MobileVerificationStep } from '@/components/checkout/MobileVerification
 import { MockPaymentSheet } from '@/components/checkout/MockPaymentSheet'
 import { OrderSummary } from '@/components/checkout/OrderSummary'
 import { PaymentModeSelector } from '@/components/checkout/PaymentModeSelector'
+import { PAYMENT_RULES } from '@/config/site'
 import { OTHER_STATES, PRIORITY_STATES, stateFromPincode } from '@/config/states'
 import { collectPayment, fetchPaymentMode, type PaymentGatewayMode } from '@/integrations/razorpay'
 import { cn, formatINR, maskPhone } from '@/lib/format'
 import { computeTotals } from '@/lib/pricing'
+import { customerAccessToken } from '@/lib/customerSession'
 import { useSeo } from '@/lib/seo'
-import { toErrorMessage } from '@/lib/supabase'
+import { isAuthError, isSupabaseConfigured, toCustomerMessage } from '@/lib/supabase'
+import { toast } from '@/components/ui/Toaster'
+import { syncCartWithCatalog } from '@/services/cartSync'
 import { placeOrder } from '@/services/orders'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { toPricedLines, useCartStore } from '@/stores/useCartStore'
@@ -43,8 +47,10 @@ export default function CheckoutPage() {
   const [mockAmount, setMockAmount] = useState<number | null>(null)
   const [gateway, setGateway] = useState<PaymentGatewayMode>('live')
   const mockResolver = useRef<((ok: boolean) => void) | null>(null)
-  // Re-use an already-created order if the shopper retries payment, so stock isn't reserved twice.
-  const pendingOrder = useRef<Order | null>(null)
+  // Re-use an already-created order if the shopper retries payment with the same bag, address and
+  // payment mode, so stock isn't reserved twice. Any change places a fresh order instead.
+  const pendingOrder = useRef<{ order: Order; key: string } | null>(null)
+  const pricesChecked = useRef(false)
 
   const form = useForm<DetailsForm>({
     resolver: zodResolver(detailsSchema),
@@ -68,10 +74,6 @@ export default function CheckoutPage() {
   }, [pincode, setValue])
 
   useEffect(() => {
-    pendingOrder.current = null
-  }, [items, mode])
-
-  useEffect(() => {
     void fetchPaymentMode().then(setGateway)
   }, [])
 
@@ -79,6 +81,12 @@ export default function CheckoutPage() {
   const totals = computeTotals(lines, mode)
   const prepaidTotals = computeTotals(lines, 'PREPAID_UPI')
   const partialTotals = computeTotals(lines, 'PARTIAL_COD')
+  const partialAvailable = partialTotals.finalAmount > PAYMENT_RULES.partialCodAdvance
+
+  // A saved Partial COD choice can become unavailable when the bag shrinks below the advance amount.
+  useEffect(() => {
+    if (mode === 'PARTIAL_COD' && !partialAvailable) setValue('paymentMode', 'PREPAID_UPI')
+  }, [mode, partialAvailable, setValue])
 
   const requestMockPayment = (amount: number) =>
     new Promise<boolean>((resolve) => {
@@ -93,16 +101,45 @@ export default function CheckoutPage() {
     setPaymentMode(selectedMode)
 
     try {
-      const order =
-        pendingOrder.current ??
-        (await placeOrder({
-          items: items.map((i) => ({ product_id: i.productId, quantity: i.quantity, selected_size: i.size })),
+      // No token can also mean a network blip, so keep the login (a fresh OTP costs an SMS); the server's 401 signs out below.
+      if (isSupabaseConfigured && !(await customerAccessToken())) {
+        setSubmitError("We couldn't confirm your mobile verification. Check your connection and try again, or tap Change to verify again.")
+        return
+      }
+
+      const lineItems = useCartStore.getState().items
+      const key = JSON.stringify([lineItems.map((i) => [i.key, i.quantity]), selectedMode, fullName, address])
+      let order = pendingOrder.current?.key === key ? pendingOrder.current.order : null
+
+      if (!order) {
+        // Prices can change while the bag sits in the browser; never charge a total the shopper hasn't seen.
+        if (!pricesChecked.current) {
+          pricesChecked.current = true
+          if (await syncCartWithCatalog()) {
+            setSubmitError('Your bag was updated with the latest prices and stock. Please review the total and tap the button again.')
+            return
+          }
+        }
+        const shownTotal = computeTotals(toPricedLines(lineItems), selectedMode).finalAmount
+        const previous = pendingOrder.current?.order
+        order = await placeOrder({
+          items: lineItems.map((i) => ({ product_id: i.productId, quantity: i.quantity, selected_size: i.size })),
           customerName: fullName,
           customerPhone: phone!,
           address: { ...address, landmark: address.landmark || undefined },
           paymentMode: selectedMode,
-        }))
-      pendingOrder.current = order
+        })
+        pendingOrder.current = { order, key }
+        if (order.final_amount !== shownTotal) {
+          pricesChecked.current = false
+          setSubmitError(
+            `The order total is now ${formatINR(order.final_amount)} because prices changed. Your order ${order.order_number} is on hold — tap the button again to pay.`,
+          )
+          void syncCartWithCatalog().catch(() => {})
+          return
+        }
+        if (previous) toast.success(`Your earlier unpaid order ${previous.order_number} will be cancelled automatically if it is not paid.`)
+      }
 
       const outcome = await collectPayment({ order, onMockPayment: requestMockPayment })
       if (outcome.status === 'paid' || outcome.status === 'offline') {
@@ -115,7 +152,8 @@ export default function CheckoutPage() {
         setSubmitError(`Payment failed: ${outcome.reason}. Please try again or use another UPI app.`)
       }
     } catch (e) {
-      setSubmitError(toErrorMessage(e))
+      if (isAuthError(e)) await signOut()
+      setSubmitError(toCustomerMessage(e))
     }
   })
 

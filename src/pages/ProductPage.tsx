@@ -16,7 +16,8 @@ import { cn, formatINR } from '@/lib/format'
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld'
 import { SITE_URL, useSeo } from '@/lib/seo'
 import { fetchCategories, fetchProductBySlug, fetchProducts, productImages, productReel, productThumbnail } from '@/services/catalog'
-import { useCartStore } from '@/stores/useCartStore'
+import { toast } from '@/components/ui/Toaster'
+import { addLimitMessage, MAX_QTY_PER_PRODUCT, useCartStore } from '@/stores/useCartStore'
 import { useRouteTheme } from '@/theme/ThemeProvider'
 import NotFoundPage from './NotFoundPage'
 
@@ -105,7 +106,7 @@ export default function ProductPage() {
       document.getElementById('size-picker')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
-    add(
+    const added = add(
       {
         productId: product.id,
         slug: product.slug,
@@ -119,6 +120,8 @@ export default function ProductPage() {
       },
       qty,
     )
+    const notice = addLimitMessage(qty, added)
+    if (notice) toast.error(notice)
     if (buyNow) {
       useCartStore.getState().close()
       navigate('/checkout')
@@ -288,12 +291,13 @@ export default function ProductPage() {
 
             <div className="mt-6 flex items-center gap-4">
               <div className="flex items-center rounded-full border border-line">
-                <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-3" aria-label="Decrease quantity">
+                <button onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={soldOut} className="p-3" aria-label="Decrease quantity">
                   <Minus className="size-4" />
                 </button>
                 <span className="w-8 text-center font-semibold">{qty}</span>
                 <button
-                  onClick={() => setQty((q) => Math.min(q + 1, product.stock_count, 10))}
+                  onClick={() => setQty((q) => Math.max(1, Math.min(q + 1, product.stock_count, MAX_QTY_PER_PRODUCT)))}
+                  disabled={soldOut}
                   className="p-3"
                   aria-label="Increase quantity"
                 >

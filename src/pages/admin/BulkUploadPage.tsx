@@ -8,10 +8,12 @@ import {
   PRODUCT_OPTIONAL_COLUMNS as OPTIONAL_COLUMNS,
   PRODUCT_REQUIRED_COLUMNS as REQUIRED_COLUMNS,
 } from '@/lib/csv'
-import { cn, formatINR, slugify } from '@/lib/format'
+import { cn, formatINR, safeHttpUrl, slugify } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
 import { bulkInsertProducts, existingSlugs, fetchCategories, type BulkProductRow } from '@/services/admin'
 import { JEWELLERY_TYPES, type JewelleryType } from '@/types'
+
+const isHttpsUrl = (value: string) => safeHttpUrl(value)?.startsWith('https://') ?? false
 
 const list = (v: unknown) =>
   String(v ?? '')
@@ -42,8 +44,11 @@ const rowSchema = z
     stock_count: z.preprocess((v) => num(v) ?? 10, z.number().int('stock_count must be a whole number').min(0)),
     in_stock: z.preprocess(bool(true), z.boolean()),
     featured: z.preprocess(bool(false), z.boolean()),
-    image_urls: z.preprocess(list, z.array(z.string().url('image_urls must be full https:// URLs')).min(1, 'at least one image URL is required')),
-    reel_url: z.preprocess(text, z.union([z.literal(''), z.string().url('reel_url must be a valid URL')])),
+    image_urls: z.preprocess(
+      list,
+      z.array(z.string().refine(isHttpsUrl, 'image_urls must be full https:// URLs')).min(1, 'at least one image URL is required'),
+    ),
+    reel_url: z.preprocess(text, z.union([z.literal(''), z.string().refine(isHttpsUrl, 'reel_url must be a full https:// URL')])),
   })
   .refine((r) => r.sale_price <= r.mrp, { path: ['sale_price'], message: 'sale_price cannot exceed mrp' })
 
@@ -180,7 +185,7 @@ export default function BulkUploadPage() {
     const url = URL.createObjectURL(new Blob([TEMPLATE], { type: 'text/csv' }))
     const a = Object.assign(document.createElement('a'), { href: url, download: 'alankrita-products-template.csv' })
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   return (

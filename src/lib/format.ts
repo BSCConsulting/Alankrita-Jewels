@@ -22,6 +22,17 @@ export function normalizeIndianMobile(input: string): string | null {
 
 export const maskPhone = (e164: string) => e164.replace(/^\+91(\d{5})(\d{5})$/, '+91 $1 $2')
 
+/** The URL if it is a well-formed http(s) link, otherwise null — keeps javascript:/data: links out of hrefs. */
+export function safeHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null
+  } catch {
+    return null
+  }
+}
+
 export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ')
 }

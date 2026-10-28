@@ -65,6 +65,8 @@ export function productJsonLd(p: JsonLdProductInput, siteUrl: string) {
         applicableCountry: 'IN',
         returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
         merchantReturnDays: 2,
+        // Change-of-mind returns are not accepted; only items that arrive damaged or incorrect.
+        itemCondition: 'https://schema.org/DamagedCondition',
         returnMethod: 'https://schema.org/ReturnByMail',
         returnFees: 'https://schema.org/FreeReturn',
       },

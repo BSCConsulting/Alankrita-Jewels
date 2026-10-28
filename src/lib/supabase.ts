@@ -23,7 +23,29 @@ export async function getAccessToken(): Promise<string | null> {
   return data.session?.access_token ?? null
 }
 
-/** Turns PostgREST / RPC errors into a customer-safe message. */
+/** SQL error codes raised on purpose by our own functions (e.g. place_order); their messages are written for shoppers. */
+const CUSTOMER_FACING_CODES = new Set(['P0001', 'P0002', '22023', '28000'])
+
+/** Error code meaning the customer's login is missing or expired. */
+export const isAuthError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false
+  const e = error as { code?: unknown; status?: unknown }
+  return e.code === '28000' || e.code === 'PGRST301' || e.code === 'PGRST303' || e.status === 401
+}
+
+/** Like toErrorMessage, but never shows internal database or network wording to shoppers. */
+export function toCustomerMessage(error: unknown, fallback = 'Something went wrong. Please try again.'): string {
+  if (isAuthError(error)) return 'Your mobile verification has expired. Please verify your number again.'
+  if (error instanceof TypeError) return 'Network problem. Please check your internet connection and try again.'
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    const code = 'code' in error ? error.code : undefined
+    // Errors without a code come from our own API responses or app code, which are already worded for shoppers.
+    if (code === undefined || (typeof code === 'string' && CUSTOMER_FACING_CODES.has(code))) return error.message
+  }
+  return fallback
+}
+
+/** Turns PostgREST / RPC errors into a readable message (admin screens). */
 export function toErrorMessage(error: unknown, fallback = 'Something went wrong. Please try again.'): string {
   if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
     return error.message

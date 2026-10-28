@@ -80,9 +80,10 @@ export async function alertPaid(env: Env, order: OrderRow, ref: string): Promise
 }
 
 export async function alertRefundNeeded(env: Env, orderNumber: string, paymentId: string): Promise<void> {
+  if (!alertsEnabled(env) || !(await firstTime(`refund:${paymentId}`))) return
   await sendAlert(
     env,
-    `🚨 <b>Refund needed</b>\nPayment <code>${escapeHtml(paymentId)}</code> was captured for order ${escapeHtml(orderNumber)}, which was already cancelled. Refund it from the Razorpay dashboard.`,
+    `🚨 <b>Refund needed</b>\nPayment <code>${escapeHtml(paymentId)}</code> was captured for order ${escapeHtml(orderNumber)}, which was cancelled or had already been paid. Check it and refund from the Razorpay dashboard.`,
   )
 }
 

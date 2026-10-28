@@ -5,7 +5,7 @@
 import type { Env } from '../../_lib/env'
 import { error, json, readJson } from '../../_lib/http'
 import { signHs256, verifyFirebaseIdToken } from '../../_lib/jwt'
-import { hasSupabase, rest } from '../../_lib/supabase'
+import { hasSupabase } from '../../_lib/supabase'
 
 const TOKEN_TTL_SECONDS = 60 * 60
 
@@ -21,12 +21,7 @@ async function findUserIdByPhone(env: Env, digits: string): Promise<string | nul
     body: JSON.stringify({ p_phone: digits }),
   })
   if (res.ok) return ((await res.json()) as string | null) ?? null
-  if (res.status !== 404) throw new Error(`user_id_by_phone failed: ${res.status} ${await res.text()}`)
-
-  // Migration 002 not applied yet.
-  console.warn('user_id_by_phone RPC missing — run supabase/migrations/002_audit_fixes.sql')
-  const rows = await rest<Array<{ id: string }>>(env, `profiles?phone=in.(${digits},%2B${digits})&select=id&limit=1`)
-  return rows[0]?.id ?? null
+  throw new Error(`user_id_by_phone failed: ${res.status} ${await res.text()}`)
 }
 
 async function createPhoneUser(env: Env, digits: string, firebaseUid: string): Promise<string | null> {

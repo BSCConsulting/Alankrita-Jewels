@@ -5,7 +5,8 @@ import { cn, formatINR } from '@/lib/format'
 import { discountPercent } from '@/lib/pricing'
 import { PAYMENT_RULES } from '@/config/site'
 import { productImages, productReel, productThumbnail } from '@/services/catalog'
-import { useCartStore } from '@/stores/useCartStore'
+import { addLimitMessage, useCartStore } from '@/stores/useCartStore'
+import { toast } from '@/components/ui/Toaster'
 import type { Product } from '@/types'
 import { PriceTag } from '@/components/ui/PriceTag'
 import { ProductBadges } from './ProductBadges'
@@ -32,8 +33,8 @@ export function ProductCard({ product, eager = false }: { product: Product; eage
     if (el && images.length > 1) el.scrollTo({ left: el.clientWidth * i, behavior: 'smooth' })
   }
 
-  const quickAdd = () =>
-    add({
+  const quickAdd = () => {
+    const added = add({
       productId: product.id,
       slug: product.slug,
       title: product.title,
@@ -44,6 +45,9 @@ export function ProductCard({ product, eager = false }: { product: Product; eage
       size: product.available_sizes[0] ?? null,
       maxQty: product.stock_count,
     })
+    const notice = addLimitMessage(1, added)
+    if (notice) toast.error(notice)
+  }
 
   return (
     <article className="ak-card group flex flex-col overflow-hidden">

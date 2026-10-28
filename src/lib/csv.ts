@@ -1,5 +1,6 @@
 // CSV exports for the admin panel. Products use the bulk-upload columns, so an export can be re-imported.
 import type { Order, Product } from '@/types'
+import { maskPhone } from './format'
 
 export const PRODUCT_REQUIRED_COLUMNS = ['title', 'category_slug', 'mrp', 'sale_price', 'jewellery_type', 'image_urls'] as const
 export const PRODUCT_OPTIONAL_COLUMNS = [
@@ -71,7 +72,8 @@ export function ordersToCsv(orders: Order[]): string {
       o.order_number,
       istTimestamp(o.created_at),
       o.customer_name,
-      o.customer_phone,
+      // Spaced and without "+", so spreadsheets keep it as text instead of 9.19E+11 or a formula.
+      maskPhone(o.customer_phone).replace(/^\+/, ''),
       o.shipping_address.address_line,
       o.shipping_address.landmark,
       o.shipping_address.city,
