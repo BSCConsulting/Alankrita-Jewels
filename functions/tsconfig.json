@@ -17,6 +17,7 @@
   "include": [
     "./**/*.ts",
     "../src/lib/jsonld.ts",
+    "../src/lib/merchantFeed.ts",
     "../src/config/site.ts",
     "../src/config/collections.ts",
     "../src/types/index.ts",
