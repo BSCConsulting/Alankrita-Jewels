@@ -11,9 +11,14 @@ export interface OrderRow {
   customer_phone: string
   shipping_address: { address_line: string; landmark?: string; city: string; state: string; pincode: string }
   final_amount: number
-  payment_mode: 'PREPAID_UPI' | 'PARTIAL_COD'
+  payment_mode: 'PREPAID_UPI' | 'PARTIAL_COD' | 'COD'
   balance_due_on_delivery: number
   advance_paid: number
+  cod_fee?: number
+  gift_wrap?: boolean
+  gift_message?: string | null
+  free_gift?: string | null
+  offer_label?: string | null
   payment_status: 'PENDING' | 'PAID' | 'PARTIAL_PAID' | 'FAILED'
   order_status: 'PLACED' | 'CONFIRMED' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED'
   payment_gateway_ref: string | null
@@ -74,8 +79,9 @@ export async function fetchOrder(env: Env, orderId: string): Promise<OrderRow | 
   return rows[0] ?? null
 }
 
+/** Amount payable online now: the advance for partial COD, nothing for full COD. */
 export const amountDueNow = (o: Pick<OrderRow, 'payment_mode' | 'final_amount' | 'balance_due_on_delivery'>) =>
-  o.payment_mode === 'PARTIAL_COD' ? Number(o.final_amount) - Number(o.balance_due_on_delivery) : Number(o.final_amount)
+  o.payment_mode === 'PREPAID_UPI' ? Number(o.final_amount) : Number(o.final_amount) - Number(o.balance_due_on_delivery)
 
 /** An order can take a payment only while it is unpaid and has not been cancelled or shipped. */
 export const isPayable = (o: Pick<OrderRow, 'payment_status' | 'order_status'>) =>

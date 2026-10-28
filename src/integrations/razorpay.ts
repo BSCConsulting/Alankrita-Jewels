@@ -10,6 +10,7 @@ type CreateOrderResponse =
   | { mode: 'live'; keyId: string; razorpayOrderId: string; amount: number; currency: 'INR' }
   | { mode: 'mock'; amount: number }
   | { mode: 'offline'; amount: number }
+  | { mode: 'none'; amount: 0 }
 
 /** live = Razorpay; mock = simulated sheet (local dev / ALLOW_MOCK_PAYMENTS); offline = pay over WhatsApp/UPI. */
 export type PaymentGatewayMode = 'live' | 'mock' | 'offline'
@@ -46,6 +47,8 @@ declare global {
 export type PaymentOutcome =
   | { status: 'paid'; ref: string }
   | { status: 'offline' }
+  /** Nothing to pay online: full cash on delivery, or a gift card covered the order. */
+  | { status: 'none' }
   | { status: 'dismissed' }
   | { status: 'failed'; reason: string }
 
@@ -67,13 +70,16 @@ function loadCheckoutScript(): Promise<void> {
 }
 
 export async function collectPayment({ order, onMockPayment }: CollectPaymentOptions): Promise<PaymentOutcome> {
+  // Still called when nothing is due: the endpoint also sends the new-order alert.
   const created = await callApi<CreateOrderResponse>('/api/payments/create-order', { orderId: order.id })
   const amount = amountDueNow(order)
 
   if (!created.available) {
     if (isSupabaseConfigured) return { status: 'failed', reason: 'The payment service could not be reached' }
+    if (amount <= 0) return { status: 'none' }
     return simulatePayment(order, amount, onMockPayment)
   }
+  if (created.data.mode === 'none' || amount <= 0) return { status: 'none' }
   if (created.data.mode === 'offline') return { status: 'offline' }
   if (created.data.mode === 'mock') return simulatePayment(order, amount, onMockPayment)
 

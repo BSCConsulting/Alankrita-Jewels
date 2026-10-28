@@ -30,7 +30,7 @@ export default function HomePage() {
   useSeo({
     title: `${SITE.name} | 1 Gram Gold, Vaddanam & Anti-Tarnish Jewellery — Hyderabad, Vijayawada, Vizag`,
     description:
-      'Shop 1 gram gold, Nakshi temple, Vaddanam, Nallapusalu, American diamond and waterproof anti-tarnish jewellery. Extra 5% off on UPI, Partial COD, 2–3 day delivery across Andhra Pradesh & Telangana.',
+      'Shop 1 gram gold, Nakshi temple, Vaddanam, Nallapusalu, American diamond and waterproof anti-tarnish jewellery. Extra 5% off on UPI, cash on delivery, 2–3 day delivery across Andhra Pradesh & Telangana.',
     path: '/',
   })
 

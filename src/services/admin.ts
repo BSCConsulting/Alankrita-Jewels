@@ -1,9 +1,9 @@
 import { blobToDataUrl, optimizeImage } from '@/lib/media'
 import { STORAGE_BUCKET, supabase } from '@/lib/supabase'
-import type { JewelleryType, MediaType, Order, OrderStatus, PaymentMode, PaymentStatus, Product, ProductMedia } from '@/types'
+import type { JewelleryType, MediaType, Occasion, Order, OrderStatus, PaymentMode, PaymentStatus, Product, ProductMedia, Stone } from '@/types'
 import { fetchCategories, normalizeProduct, PRODUCT_SELECT } from './catalog'
 import { commitMockDb, delay, mockDb, uid, withCategory } from './mockDb'
-import { normalizeOrder, ORDER_SELECT } from './orders'
+import { normalizeOrder, ORDER_SELECT, releaseMockOrderHolds } from './orders'
 
 // ---------------------------------------------------------------------------
 // Admin session
@@ -58,12 +58,29 @@ export async function uploadMedia(file: File, kind: MediaType): Promise<string> 
     return kind === 'image' ? blobToDataUrl(body) : URL.createObjectURL(body)
   }
   const ext = kind === 'image' ? (body.type === 'image/webp' ? 'webp' : file.name.split('.').pop()) : file.name.split('.').pop()
-  const path = `${kind === 'image' ? 'images' : 'reels'}/${new Date().getFullYear()}/${uid()}.${ext ?? 'bin'}`
-  const { error } = await supabase.storage
+  return uploadToBucket(`${kind === 'image' ? 'images' : 'reels'}/${new Date().getFullYear()}/${uid()}.${ext ?? 'bin'}`, body, file.type)
+}
+
+async function uploadToBucket(path: string, body: Blob, fallbackType: string): Promise<string> {
+  const { error } = await supabase!.storage
     .from(STORAGE_BUCKET)
-    .upload(path, body, { contentType: body.type || file.type, cacheControl: '31536000', upsert: false })
+    .upload(path, body, { contentType: body.type || fallbackType, cacheControl: '31536000', upsert: false })
   if (error) throw error
-  return supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path).data.publicUrl
+  return supabase!.storage.from(STORAGE_BUCKET).getPublicUrl(path).data.publicUrl
+}
+
+/** Product photo plus a ~480px copy for grids, so category pages don't download full-size images. */
+export async function uploadProductImage(file: File): Promise<{ url: string; thumbUrl: string | null }> {
+  const [full, thumb] = await Promise.all([optimizeImage(file), optimizeImage(file, 480, 0.8)])
+  // Mock mode keeps one copy: browser storage is small.
+  if (!supabase) return { url: await blobToDataUrl(full), thumbUrl: null }
+  const base = `images/${new Date().getFullYear()}/${uid()}`
+  const ext = (b: Blob) => (b.type === 'image/webp' ? 'webp' : (file.name.split('.').pop() ?? 'bin'))
+  const [url, thumbUrl] = await Promise.all([
+    uploadToBucket(`${base}.${ext(full)}`, full, file.type),
+    uploadToBucket(`${base}-w480.${ext(thumb)}`, thumb, file.type),
+  ])
+  return { url, thumbUrl }
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +98,8 @@ export interface ProductInput {
   plating_type: string | null
   warranty_details: string | null
   available_sizes: string[]
+  occasions: Occasion[]
+  stones: Stone[]
   stock_count: number
   in_stock: boolean
   featured: boolean
@@ -89,6 +108,7 @@ export interface ProductInput {
 export interface MediaInput {
   media_type: MediaType
   url: string
+  thumb_url?: string | null
   is_thumbnail: boolean
 }
 
@@ -308,15 +328,8 @@ export async function updateOrder(id: string, patch: OrderPatch): Promise<Order>
     if (next && next !== order.order_status && !ORDER_TRANSITIONS[order.order_status].includes(next)) {
       throw new Error(`An order cannot move from ${order.order_status} to ${next}`)
     }
-    if (next === 'CANCELLED' && order.order_status !== 'CANCELLED') {
-      for (const item of order.items ?? []) {
-        const p = db.products.find((x) => x.id === item.product_id)
-        if (p) {
-          p.in_stock = p.in_stock || p.stock_count === 0
-          p.stock_count += item.quantity
-        }
-      }
-    }
+    if (next === 'CANCELLED' && order.order_status !== 'CANCELLED') releaseMockOrderHolds(order)
+    if (next === 'DELIVERED' && order.order_status !== 'DELIVERED') order.delivered_at = new Date().toISOString()
     Object.assign(order, patch)
     commitMockDb()
     return { ...order }
@@ -325,6 +338,13 @@ export async function updateOrder(id: string, patch: OrderPatch): Promise<Order>
   if (error) throw error
   assertWritten(data)
   return normalizeOrder(data[0])
+}
+
+/** Limits a customer who refuses COD parcels to prepaid / Partial COD orders (or lifts the limit). */
+export async function setCodBlocked(userId: string, blocked: boolean): Promise<void> {
+  if (!supabase) return
+  const { error } = await supabase.rpc('admin_set_cod_blocked', { p_user_id: userId, p_blocked: blocked })
+  if (error) throw error
 }
 
 export interface DashboardStats {
@@ -336,8 +356,8 @@ export interface DashboardStats {
   lowStock: Product[]
 }
 
-type StatsOrder = Pick<Order, 'created_at' | 'order_status' | 'payment_status' | 'final_amount' | 'balance_due_on_delivery'>
-const STATS_COLUMNS = 'created_at, order_status, payment_status, final_amount, balance_due_on_delivery'
+type StatsOrder = Pick<Order, 'created_at' | 'order_status' | 'payment_status' | 'payment_mode' | 'final_amount' | 'balance_due_on_delivery'>
+const STATS_COLUMNS = 'created_at, order_status, payment_status, payment_mode, final_amount, balance_due_on_delivery'
 const OPEN_STATUSES: OrderStatus[] = ['PLACED', 'CONFIRMED', 'DISPATCHED']
 
 /** Stats come from two targeted queries (last 30 days + all open orders), not a capped order list. */
@@ -367,15 +387,17 @@ export async function fetchDashboardStats(): Promise<DashboardStats> {
   const products = await productsPromise
 
   const isPaid = (o: StatsOrder) => o.payment_status === 'PAID' || o.payment_status === 'PARTIAL_PAID'
+  // Full COD orders are ready to ship while unpaid; their cash arrives with the courier.
+  const isCodUnpaid = (o: StatsOrder) => o.payment_mode === 'COD' && o.payment_status === 'PENDING'
   const liveRecent = recent.filter((o) => o.order_status !== 'CANCELLED')
 
   return {
     ordersToday: liveRecent.filter((o) => new Date(o.created_at) >= startOfDay).length,
     revenue30d: liveRecent.filter(isPaid).reduce((sum, o) => sum + o.final_amount, 0),
-    awaitingDispatch: open.filter((o) => o.order_status !== 'DISPATCHED' && isPaid(o)).length,
-    pendingPayment: open.filter((o) => o.order_status !== 'DISPATCHED' && o.payment_status === 'PENDING').length,
+    awaitingDispatch: open.filter((o) => o.order_status !== 'DISPATCHED' && (isPaid(o) || isCodUnpaid(o))).length,
+    pendingPayment: open.filter((o) => o.order_status !== 'DISPATCHED' && o.payment_status === 'PENDING' && o.payment_mode !== 'COD').length,
     codBalanceOutstanding: open
-      .filter((o) => o.payment_status === 'PARTIAL_PAID')
+      .filter((o) => o.payment_status === 'PARTIAL_PAID' || isCodUnpaid(o))
       .reduce((sum, o) => sum + o.balance_due_on_delivery, 0),
     lowStock: products.filter((p) => p.stock_count <= 3).slice(0, 6),
   }

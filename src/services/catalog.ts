@@ -12,6 +12,8 @@ export function normalizeProduct(row: Record<string, unknown>): Product {
     mrp: Number(p.mrp),
     sale_price: Number(p.sale_price),
     available_sizes: p.available_sizes ?? [],
+    occasions: p.occasions ?? [],
+    stones: p.stones ?? [],
     media: [...((p.media ?? []) as ProductMedia[])].sort((a, b) => a.display_order - b.display_order),
   }
 }
@@ -120,6 +122,22 @@ export async function fetchProductBySlug(slug: string): Promise<Product | null> 
   return data ? normalizeProduct(data) : null
 }
 
+/** Product ids bought together with this one in at least two real orders, most frequent first. */
+export async function fetchBoughtTogether(productId: string): Promise<Map<string, number>> {
+  if (!supabase) {
+    const counts = new Map<string, number>()
+    for (const o of mockDb().orders) {
+      if (o.order_status === 'CANCELLED' || !o.items?.some((i) => i.product_id === productId)) continue
+      for (const id of new Set(o.items.map((i) => i.product_id))) if (id && id !== productId) counts.set(id, (counts.get(id) ?? 0) + 1)
+    }
+    return new Map([...counts].filter(([, n]) => n >= 2))
+  }
+  const { data, error } = await supabase.rpc('frequently_bought_with', { p_product_id: productId, p_limit: 8 })
+  // Before migration 005 is installed the RPC is missing; recommendations fall back to catalogue rules.
+  if (error) return new Map()
+  return new Map((data as Array<{ product_id: string; orders_together: number }>).map((r) => [r.product_id, r.orders_together]))
+}
+
 export async function fetchProductsByIds(ids: string[]): Promise<Product[]> {
   if (ids.length === 0) return []
   if (!supabase) return mockDb().products.filter((p) => ids.includes(p.id)).map(withCategory)
@@ -131,4 +149,9 @@ export async function fetchProductsByIds(ids: string[]): Promise<Product[]> {
 export const productImages = (p: Product) => p.media.filter((m) => m.media_type === 'image')
 export const productThumbnail = (p: Product) =>
   (p.media.find((m) => m.is_thumbnail && m.media_type === 'image') ?? productImages(p)[0])?.url ?? '/favicon.svg'
+/** Small grid image, falling back to the full photo for media uploaded before thumbnails existed. */
+export const productThumbnailSmall = (p: Product) => {
+  const m = p.media.find((x) => x.is_thumbnail && x.media_type === 'image') ?? productImages(p)[0]
+  return m?.thumb_url ?? m?.url ?? '/favicon.svg'
+}
 export const productReel = (p: Product) => p.media.find((m) => m.media_type === 'video_reel')?.url ?? null

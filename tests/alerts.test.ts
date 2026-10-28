@@ -51,6 +51,20 @@ describe('alerts', () => {
     expect(text).toContain('https://shop/admin/orders')
   })
 
+  it('flags cash on delivery, gifting and the free gift to pack', async () => {
+    await alertNewOrder(
+      env,
+      { ...order, id: 'order-2', payment_mode: 'COD', balance_due_on_delivery: 2549, gift_wrap: true, gift_message: 'Happy <3', free_gift: 'Velvet pouch' },
+      'https://shop',
+    )
+    const text = sentText()
+    expect(text).toContain('Cash on delivery')
+    expect(text).toContain('collect ₹2,549')
+    expect(text).toContain('Gift wrap')
+    expect(text).toContain('Happy &lt;3')
+    expect(text).toContain('Pack free gift: Velvet pouch')
+  })
+
   it('never throws when Telegram is unreachable', async () => {
     fetchMock.mockRejectedValueOnce(new Error('offline'))
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})

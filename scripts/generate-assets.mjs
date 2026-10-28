@@ -176,17 +176,17 @@ const lines = [
     .map((c) => `  (${q(c.id)}, ${q(c.name)}, ${q(c.telugu_name)}, ${q(c.slug)}, ${c.parent_slug ? q(categoriesBySlug[c.parent_slug].id) : 'null'}, ${q(c.description)}, ${q(c.theme_default)}, ${c.display_order})`)
     .join(',\n') + '\non conflict (id) do nothing;',
   '',
-  'insert into public.products (id, title, telugu_title, slug, description, category_id, mrp, sale_price, jewellery_type, plating_type, warranty_details, available_sizes, stock_count, featured) values',
+  'insert into public.products (id, title, telugu_title, slug, description, category_id, mrp, sale_price, jewellery_type, plating_type, warranty_details, available_sizes, occasions, stones, stock_count, featured) values',
   catalog.products
-    .map((p) => `  (${q(p.id)}, ${q(p.title)}, ${q(p.telugu_title)}, ${q(p.slug)}, ${q(p.description)}, ${q(categoriesBySlug[p.category_slug].id)}, ${p.mrp}, ${p.sale_price}, ${q(p.jewellery_type)}, ${q(p.plating_type)}, ${q(p.warranty_details)}, ${arr(p.available_sizes)}, ${p.stock_count}, ${p.featured})`)
+    .map((p) => `  (${q(p.id)}, ${q(p.title)}, ${q(p.telugu_title)}, ${q(p.slug)}, ${q(p.description)}, ${q(categoriesBySlug[p.category_slug].id)}, ${p.mrp}, ${p.sale_price}, ${q(p.jewellery_type)}, ${q(p.plating_type)}, ${q(p.warranty_details)}, ${arr(p.available_sizes)}, ${arr(p.occasions)}, ${arr(p.stones)}, ${p.stock_count}, ${p.featured})`)
     .join(',\n') + '\non conflict (id) do nothing;',
   '',
-  'insert into public.product_media (product_id, media_type, url, is_thumbnail, display_order) values',
+  'insert into public.product_media (product_id, media_type, url, thumb_url, is_thumbnail, display_order) values',
   catalog.products
     .flatMap((p) => [
-      `  (${q(p.id)}, 'image', ${q(`/products/${p.slug}-1.webp`)}, true, 0)`,
-      `  (${q(p.id)}, 'image', ${q(`/products/${p.slug}-2.webp`)}, false, 1)`,
-      ...(p.reel ? [`  (${q(p.id)}, 'video_reel', ${q(catalog.sampleReelUrl)}, false, 2)`] : []),
+      `  (${q(p.id)}, 'image', ${q(`/products/${p.slug}-1.webp`)}, ${q(`/products/${p.slug}-1-w480.webp`)}, true, 0)`,
+      `  (${q(p.id)}, 'image', ${q(`/products/${p.slug}-2.webp`)}, ${q(`/products/${p.slug}-2-w480.webp`)}, false, 1)`,
+      ...(p.reel ? [`  (${q(p.id)}, 'video_reel', ${q(catalog.sampleReelUrl)}, null, false, 2)`] : []),
     ])
     .join(',\n') + ';',
   '',

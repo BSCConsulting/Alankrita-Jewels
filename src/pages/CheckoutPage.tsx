@@ -6,13 +6,13 @@ import { z } from 'zod'
 import { Check, Loader2, Lock, MapPin, ShoppingBag } from 'lucide-react'
 import { MobileVerificationStep } from '@/components/checkout/MobileVerificationStep'
 import { MockPaymentSheet } from '@/components/checkout/MockPaymentSheet'
+import { OffersAndGifting, type AppliedGiftCard } from '@/components/checkout/OffersAndGifting'
 import { OrderSummary } from '@/components/checkout/OrderSummary'
 import { PaymentModeSelector } from '@/components/checkout/PaymentModeSelector'
-import { PAYMENT_RULES } from '@/config/site'
 import { OTHER_STATES, PRIORITY_STATES, stateFromPincode } from '@/config/states'
 import { collectPayment, fetchPaymentMode, type PaymentGatewayMode } from '@/integrations/razorpay'
 import { cn, formatINR, maskPhone } from '@/lib/format'
-import { computeTotals } from '@/lib/pricing'
+import { computeTotals, paymentModeBlocker, type CouponRule } from '@/lib/pricing'
 import { customerAccessToken } from '@/lib/customerSession'
 import { useSeo } from '@/lib/seo'
 import { isAuthError, isSupabaseConfigured, toCustomerMessage } from '@/lib/supabase'
@@ -31,7 +31,7 @@ const detailsSchema = z.object({
   city: z.string().trim().min(2, 'City is required').max(60),
   state: z.string().min(2, 'Select your state'),
   pincode: z.string().regex(/^[1-9]\d{5}$/, 'Enter a valid 6-digit pincode'),
-  paymentMode: z.enum(['PREPAID_UPI', 'PARTIAL_COD']),
+  paymentMode: z.enum(['PREPAID_UPI', 'PARTIAL_COD', 'COD']),
 })
 type DetailsForm = z.infer<typeof detailsSchema>
 
@@ -46,9 +46,13 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [mockAmount, setMockAmount] = useState<number | null>(null)
   const [gateway, setGateway] = useState<PaymentGatewayMode>('live')
+  const [coupon, setCoupon] = useState<CouponRule | null>(null)
+  const [giftCard, setGiftCard] = useState<AppliedGiftCard | null>(null)
+  const [giftWrap, setGiftWrap] = useState(false)
+  const [giftMessage, setGiftMessage] = useState('')
   const mockResolver = useRef<((ok: boolean) => void) | null>(null)
-  // Re-use an already-created order if the shopper retries payment with the same bag, address and
-  // payment mode, so stock isn't reserved twice. Any change places a fresh order instead.
+  // Re-use an already-created order if the shopper retries payment with the same bag, address, payment
+  // mode and offers, so stock isn't reserved twice. Any change places a fresh order that replaces it.
   const pendingOrder = useRef<{ order: Order; key: string } | null>(null)
   const pricesChecked = useRef(false)
 
@@ -78,15 +82,17 @@ export default function CheckoutPage() {
   }, [])
 
   const lines = toPricedLines(items)
-  const totals = computeTotals(lines, mode)
-  const prepaidTotals = computeTotals(lines, 'PREPAID_UPI')
-  const partialTotals = computeTotals(lines, 'PARTIAL_COD')
-  const partialAvailable = partialTotals.finalAmount > PAYMENT_RULES.partialCodAdvance
+  const pricing = { coupon, giftWrap, giftCardBalance: giftCard?.balance ?? 0 }
+  const totals = computeTotals(lines, mode, pricing)
+  const prepaidTotals = computeTotals(lines, 'PREPAID_UPI', pricing)
+  const partialTotals = computeTotals(lines, 'PARTIAL_COD', pricing)
+  const codTotals = computeTotals(lines, 'COD', pricing)
+  const modeBlocked = mode !== 'PREPAID_UPI' && Boolean(paymentModeBlocker(mode, mode === 'COD' ? codTotals : partialTotals))
 
-  // A saved Partial COD choice can become unavailable when the bag shrinks below the advance amount.
+  // A saved COD / Partial COD choice can become unavailable as the bag or gift card changes.
   useEffect(() => {
-    if (mode === 'PARTIAL_COD' && !partialAvailable) setValue('paymentMode', 'PREPAID_UPI')
-  }, [mode, partialAvailable, setValue])
+    if (modeBlocked) setValue('paymentMode', 'PREPAID_UPI')
+  }, [modeBlocked, setValue])
 
   const requestMockPayment = (amount: number) =>
     new Promise<boolean>((resolve) => {
@@ -108,7 +114,17 @@ export default function CheckoutPage() {
       }
 
       const lineItems = useCartStore.getState().items
-      const key = JSON.stringify([lineItems.map((i) => [i.key, i.quantity]), selectedMode, fullName, address])
+      const message = giftWrap ? giftMessage.trim() : ''
+      const key = JSON.stringify([
+        lineItems.map((i) => [i.key, i.quantity]),
+        selectedMode,
+        fullName,
+        address,
+        coupon?.code ?? null,
+        giftCard?.code ?? null,
+        giftWrap,
+        message,
+      ])
       let order = pendingOrder.current?.key === key ? pendingOrder.current.order : null
 
       if (!order) {
@@ -120,7 +136,7 @@ export default function CheckoutPage() {
             return
           }
         }
-        const shownTotal = computeTotals(toPricedLines(lineItems), selectedMode).finalAmount
+        const shownTotal = computeTotals(toPricedLines(lineItems), selectedMode, pricing).finalAmount
         const previous = pendingOrder.current?.order
         order = await placeOrder({
           items: lineItems.map((i) => ({ product_id: i.productId, quantity: i.quantity, selected_size: i.size })),
@@ -128,21 +144,26 @@ export default function CheckoutPage() {
           customerPhone: phone!,
           address: { ...address, landmark: address.landmark || undefined },
           paymentMode: selectedMode,
+          couponCode: coupon?.code,
+          giftCardCode: giftCard?.code,
+          giftWrap,
+          giftMessage: message || null,
+          replacesOrderId: previous?.id,
         })
         pendingOrder.current = { order, key }
+        if (previous) toast.success(`Your earlier unpaid order ${previous.order_number} was replaced by ${order.order_number}.`)
         if (order.final_amount !== shownTotal) {
           pricesChecked.current = false
           setSubmitError(
-            `The order total is now ${formatINR(order.final_amount)} because prices changed. Your order ${order.order_number} is on hold — tap the button again to pay.`,
+            `The order total is now ${formatINR(order.final_amount)} because prices or offers changed. Your order ${order.order_number} is on hold — review the summary and tap the button again.`,
           )
           void syncCartWithCatalog().catch(() => {})
           return
         }
-        if (previous) toast.success(`Your earlier unpaid order ${previous.order_number} will be cancelled automatically if it is not paid.`)
       }
 
       const outcome = await collectPayment({ order, onMockPayment: requestMockPayment })
-      if (outcome.status === 'paid' || outcome.status === 'offline') {
+      if (outcome.status === 'paid' || outcome.status === 'offline' || outcome.status === 'none') {
         pendingOrder.current = null
         clear()
         navigate(`/order/${order.order_number}`, { replace: true })
@@ -247,6 +268,19 @@ export default function CheckoutPage() {
                   </div>
                 </section>
 
+                <OffersAndGifting
+                  phone={phone}
+                  totals={totals}
+                  coupon={coupon}
+                  onCoupon={setCoupon}
+                  giftCard={giftCard}
+                  onGiftCard={setGiftCard}
+                  giftWrap={giftWrap}
+                  onGiftWrap={setGiftWrap}
+                  giftMessage={giftMessage}
+                  onGiftMessage={setGiftMessage}
+                />
+
                 <section className="ak-card space-y-4 p-5 sm:p-7">
                   <h2 className="flex items-center gap-2 font-display text-2xl font-semibold">
                     <Lock className="size-5 text-primary" /> Payment
@@ -256,6 +290,7 @@ export default function CheckoutPage() {
                     onChange={(m) => setValue('paymentMode', m)}
                     prepaid={prepaidTotals}
                     partial={partialTotals}
+                    cod={codTotals}
                   />
                 </section>
 
@@ -270,6 +305,12 @@ export default function CheckoutPage() {
                     <>
                       <Loader2 className="size-5 animate-spin" /> Processing…
                     </>
+                  ) : totals.payNow === 0 ? (
+                    mode === 'COD' ? (
+                      `Place Order · Pay ${formatINR(totals.balanceOnDelivery)} on Delivery`
+                    ) : (
+                      'Place Order'
+                    )
                   ) : gateway === 'offline' ? (
                     `Place Order · Pay ${formatINR(totals.payNow)} via UPI`
                   ) : mode === 'PARTIAL_COD' ? (
@@ -279,9 +320,13 @@ export default function CheckoutPage() {
                   )}
                 </button>
                 <p className="text-center text-xs text-ink-muted">
-                  {gateway === 'offline'
-                    ? 'Next, pay by UPI (GPay, PhonePe, Paytm). We share our UPI details on WhatsApp and confirm your order once payment is received.'
-                    : 'One-click confirm · Secured by Razorpay · 100% safe UPI payments'}
+                  {totals.payNow === 0
+                    ? mode === 'COD'
+                      ? 'Keep cash or a UPI app ready when the courier arrives.'
+                      : 'Your gift card covers this order — nothing more to pay.'
+                    : gateway === 'offline'
+                      ? 'Next, pay by UPI (GPay, PhonePe, Paytm). We share our UPI details on WhatsApp and confirm your order once payment is received.'
+                      : 'One-click confirm · Secured by Razorpay · 100% safe UPI payments'}
                 </p>
                 <p className="text-center text-xs text-ink-muted">
                   By placing this order you agree to our{' '}

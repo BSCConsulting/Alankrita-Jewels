@@ -97,14 +97,14 @@ export const FAQS: Faq[] = [
   },
   {
     id: 'partial-cod',
-    chip: { en: 'Partial COD', te: 'పార్షియల్ COD' },
+    chip: { en: 'Cash on delivery', te: 'క్యాష్ ఆన్ డెలివరీ' },
     q: {
-      en: 'What is Partial COD and why is ₹150 collected in advance?',
-      te: 'పార్షియల్ COD అంటే ఏమిటి? ₹150 ముందుగా ఎందుకు తీసుకుంటారు?',
+      en: 'Do you have cash on delivery?',
+      te: 'క్యాష్ ఆన్ డెలివరీ ఉందా?',
     },
     a: {
-      en: 'Partial COD lets you reserve your piece by paying just ₹150 online now and the balance in cash/UPI to the courier on delivery. The small advance confirms genuine orders, stops fake bookings and lets us ship every parcel insured — which keeps prices low for everyone. The ₹150 is fully adjusted in your bill.',
-      te: 'పార్షియల్ COD లో ఇప్పుడు కేవలం ₹150 ఆన్‌లైన్‌లో చెల్లించి మీ ఆభరణాన్ని రిజర్వ్ చేసుకోవచ్చు, మిగిలిన మొత్తాన్ని డెలివరీ సమయంలో కొరియర్‌కు క్యాష్/UPI ద్వారా చెల్లించవచ్చు. ఈ చిన్న అడ్వాన్స్ నిజమైన ఆర్డర్‌లను నిర్ధారిస్తుంది, నకిలీ బుకింగ్‌లను అరికడుతుంది, ప్రతి పార్సెల్‌ను ఇన్సూరెన్స్‌తో పంపడానికి సహాయపడుతుంది. ఈ ₹150 మీ మొత్తం బిల్లులో పూర్తిగా సర్దుబాటు అవుతుంది.',
+      en: 'Yes. Full cash on delivery is available on orders up to ₹5,999 with a ₹49 handling fee — pay the courier in cash or UPI. Or choose Partial COD: pay just ₹150 online now to reserve your piece (no handling fee) and the balance on delivery. Paying fully by UPI gets you an extra 5% off.',
+      te: 'అవును. ₹5,999 వరకు ఆర్డర్‌లకు ₹49 హ్యాండ్లింగ్ ఫీజుతో పూర్తి క్యాష్ ఆన్ డెలివరీ అందుబాటులో ఉంది — కొరియర్‌కు క్యాష్ లేదా UPI ద్వారా చెల్లించండి. లేదా పార్షియల్ COD ఎంచుకోండి: ఇప్పుడు కేవలం ₹150 ఆన్‌లైన్‌లో చెల్లించి మీ ఆభరణాన్ని రిజర్వ్ చేసుకోండి (హ్యాండ్లింగ్ ఫీజు లేదు), మిగిలినది డెలివరీలో. పూర్తిగా UPI ద్వారా చెల్లిస్తే అదనంగా 5% తగ్గింపు.',
     },
   },
   {

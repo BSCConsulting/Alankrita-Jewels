@@ -18,7 +18,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
   const headers = { authorization: `Bearer ${env.SHIPROCKET_TOKEN}`, 'content-type': 'application/json' }
   const [firstName, ...rest] = order.customer_name.trim().split(/\s+/)
-  const isCod = order.payment_mode === 'PARTIAL_COD'
+  const isCod = Number(order.balance_due_on_delivery) > 0
 
   const createRes = await fetch(`${API}/orders/create/adhoc`, {
     method: 'POST',
@@ -45,7 +45,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       })),
       payment_method: isCod ? 'COD' : 'Prepaid',
       sub_total: Number(order.final_amount),
-      // For Partial COD the courier must only collect the balance; the advance is passed as a discount.
+      // The courier collects only the balance due; anything already paid online is passed as a discount.
       total_discount: isCod ? Number(order.final_amount) - Number(order.balance_due_on_delivery) : 0,
       length: DEFAULT_PARCEL.lengthCm,
       breadth: DEFAULT_PARCEL.breadthCm,

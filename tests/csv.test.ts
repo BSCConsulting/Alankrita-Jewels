@@ -36,6 +36,8 @@ describe('productsToCsv', () => {
     plating_type: 'Micro Gold',
     warranty_details: null,
     available_sizes: ['2.4', '2.6'],
+    occasions: ['wedding', 'festival'],
+    stones: ['kempu'],
     in_stock: true,
     stock_count: 8,
     featured: false,
@@ -54,7 +56,7 @@ describe('productsToCsv', () => {
     expect(row).toContain('https://x/1.jpg|https://x/2.jpg')
     expect(row).toContain('2.4|2.6')
     expect(row).toContain('"Antique, for weddings"')
-    expect(row.endsWith('https://x/r.mp4')).toBe(true)
+    expect(row.endsWith('https://x/r.mp4,wedding|festival,kempu')).toBe(true)
   })
 })
 
@@ -68,7 +70,19 @@ describe('ordersToCsv', () => {
       customer_name: 'Sita',
       shipping_address: { address_line: '1-2, Main Rd', city: 'Madhira', state: 'Telangana', pincode: '507203' },
       total_mrp: 2000,
+      subtotal: 1500,
       discount_amount: 500,
+      offer_label: null,
+      offer_discount: 0,
+      prepaid_discount: 0,
+      coupon_code: null,
+      cod_fee: 0,
+      gift_wrap: true,
+      gift_wrap_fee: 0,
+      gift_message: 'Happy birthday, Amma',
+      gift_card_amount: 0,
+      free_gift: null,
+      delivered_at: null,
       final_amount: 1500,
       payment_mode: 'PARTIAL_COD',
       advance_paid: 150,
@@ -91,5 +105,6 @@ describe('ordersToCsv', () => {
     expect(row).toContain('Jhumka × 2 | Bangle (2.6) × 1')
     expect(row).toContain(',91 90000 00000,')
     expect(row).toContain('PARTIAL_COD,PARTIAL_PAID,150,1350')
+    expect(row).toContain(',yes,"Happy birthday, Amma",')
   })
 })

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { BadgeCheck, ChevronDown, Download, ExternalLink, Loader2, Phone, RefreshCw, Search, Send, Truck } from 'lucide-react'
+import { Ban, BadgeCheck, ChevronDown, Download, ExternalLink, Gift, HandCoins, Loader2, Phone, RefreshCw, Search, Send, Truck } from 'lucide-react'
 import { toast } from '@/components/ui/Toaster'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { PAYMENT_RULES } from '@/config/site'
@@ -9,10 +9,12 @@ import { sendTrackingNotification } from '@/integrations/whatsappNotify'
 import { datedFilename, downloadCsv, ordersToCsv } from '@/lib/csv'
 import { cn, formatDate, formatINR, safeHttpUrl } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
-import { exportOrders, listOrders, ORDER_TRANSITIONS, updateOrder } from '@/services/admin'
+import { exportOrders, listOrders, ORDER_TRANSITIONS, setCodBlocked, updateOrder } from '@/services/admin'
 import { amountDueNow } from '@/services/orders'
 import { useAdminStore } from '@/stores/useAdminStore'
-import { ORDER_STATUSES, PAYMENT_MODES, PAYMENT_STATUSES, type Order, type OrderStatus, type PaymentStatus } from '@/types'
+import { ORDER_STATUSES, PAYMENT_MODES, PAYMENT_STATUSES, type Order, type OrderStatus, type PaymentMode, type PaymentStatus } from '@/types'
+
+const MODE_LABEL: Record<PaymentMode, string> = { PREPAID_UPI: 'UPI Prepaid', PARTIAL_COD: 'Partial COD', COD: 'Cash on delivery' }
 
 const PAYMENT_TONE: Record<PaymentStatus, string> = {
   PENDING: 'bg-amber-100 text-amber-800',
@@ -114,6 +116,22 @@ export default function OrdersPage() {
       toast.success(`${order.order_number} marked as paid`)
     })
 
+  /** Cash (or UPI) the courier collected on delivery: full COD, or the Partial COD balance. */
+  const markCollected = (order: Order) =>
+    run(`${order.id}:COLLECTED`, async () => {
+      if (!confirm(`Confirm the courier collected ${formatINR(order.balance_due_on_delivery)} for ${order.order_number}?`)) return
+      replace(await updateOrder(order.id, { payment_status: 'PAID' }))
+      toast.success(`${order.order_number}: payment collected`)
+    })
+
+  const blockCod = (order: Order) =>
+    run(`${order.id}:BLOCK`, async () => {
+      if (!order.user_id) return
+      if (!confirm(`Stop cash on delivery for ${order.customer_name} (${order.customer_phone})? They can still pay online or use Partial COD.`)) return
+      await setCodBlocked(order.user_id, true)
+      toast.success(`Cash on delivery turned off for ${order.customer_phone}`)
+    })
+
   const exportCsv = () =>
     run('EXPORT', async () => {
       const all = await exportOrders(filters)
@@ -151,8 +169,8 @@ export default function OrdersPage() {
       </div>
 
       <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-900">
-        Unpaid orders are cancelled automatically {PAYMENT_RULES.unpaidHoldHours} hours after they are placed, and their stock
-        is returned. Mark an order as paid before then to keep it.
+        Unpaid online orders are cancelled automatically {PAYMENT_RULES.unpaidHoldHours} hours after they are placed, and their
+        stock is returned. Mark an order as paid before then to keep it. Cash-on-delivery orders are never auto-cancelled.
       </p>
 
       <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-[1fr_repeat(3,180px)_auto]">
@@ -167,7 +185,7 @@ export default function OrdersPage() {
         </label>
         <FilterSelect label="Payment" value={filters.paymentStatus} options={PAYMENT_STATUSES} onChange={(v) => setFilter('paymentStatus', v)} />
         <FilterSelect label="Delivery" value={filters.orderStatus} options={ORDER_STATUSES} onChange={(v) => setFilter('orderStatus', v)} />
-        <FilterSelect label="Mode" value={filters.paymentMode} options={PAYMENT_MODES} onChange={(v) => setFilter('paymentMode', v)} />
+        <FilterSelect label="Mode" value={filters.paymentMode} options={PAYMENT_MODES} labels={MODE_LABEL} onChange={(v) => setFilter('paymentMode', v)} />
         <button
           onClick={() => {
             resetFilters()
@@ -188,7 +206,17 @@ export default function OrdersPage() {
 
       <div className="space-y-3">
         {orders.map((o) => (
-          <OrderCard key={o.id} order={o} busy={busy} onShip={ship} onNotify={notify} onStatus={setStatus} onMarkPaid={markPaid} />
+          <OrderCard
+            key={o.id}
+            order={o}
+            busy={busy}
+            onShip={ship}
+            onNotify={notify}
+            onStatus={setStatus}
+            onMarkPaid={markPaid}
+            onCollected={markCollected}
+            onBlockCod={blockCod}
+          />
         ))}
       </div>
     </div>
@@ -199,11 +227,13 @@ function FilterSelect<T extends string>({
   label: name,
   value,
   options,
+  labels,
   onChange,
 }: {
   label: string
   value: T | 'ALL'
   options: readonly T[]
+  labels?: Record<T, string>
   onChange: (v: T | 'ALL') => void
 }) {
   return (
@@ -211,7 +241,7 @@ function FilterSelect<T extends string>({
       <option value="ALL">{name}: All</option>
       {options.map((o) => (
         <option key={o} value={o}>
-          {label(o)}
+          {labels?.[o] ?? label(o)}
         </option>
       ))}
     </select>
@@ -225,17 +255,27 @@ interface OrderCardProps {
   onNotify: (o: Order) => void
   onStatus: (o: Order, s: OrderStatus) => void
   onMarkPaid: (o: Order) => void
+  onCollected: (o: Order) => void
+  onBlockCod: (o: Order) => void
 }
 
-function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid }: OrderCardProps) {
+function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid, onCollected, onBlockCod }: OrderCardProps) {
   const [open, setOpen] = useState(false)
+  const isCod = o.payment_mode === 'COD'
   const unpaid = o.payment_status === 'PENDING' || o.payment_status === 'FAILED'
+  // Full COD ships unpaid; the courier collects the cash.
+  const awaitingPayment = unpaid && !(isCod && o.payment_status === 'PENDING')
   const cancelled = o.order_status === 'CANCELLED'
-  const payable = unpaid && (o.order_status === 'PLACED' || o.order_status === 'CONFIRMED')
-  const nextStatuses = ORDER_TRANSITIONS[o.order_status].filter((s) => !(unpaid && s === 'DISPATCHED'))
+  const payable = awaitingPayment && amountDueNow(o) > 0 && (o.order_status === 'PLACED' || o.order_status === 'CONFIRMED')
+  const collectable =
+    !cancelled &&
+    o.balance_due_on_delivery > 0 &&
+    (o.order_status === 'DISPATCHED' || o.order_status === 'DELIVERED') &&
+    ((isCod && o.payment_status === 'PENDING') || o.payment_status === 'PARTIAL_PAID')
+  const nextStatuses = ORDER_TRANSITIONS[o.order_status].filter((s) => !(awaitingPayment && s === 'DISPATCHED'))
   const shipBlocked = cancelled
     ? 'Order is cancelled'
-    : unpaid
+    : awaitingPayment
       ? 'Payment not received yet'
       : o.awb_number
         ? 'AWB already generated'
@@ -262,10 +302,17 @@ function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid }: O
         <div className="text-sm">
           <p className="text-lg font-bold">{formatINR(o.final_amount)}</p>
           <div className="mt-1 flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold">{o.payment_mode === 'PREPAID_UPI' ? 'UPI Prepaid' : 'Partial COD'}</span>
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold">{MODE_LABEL[o.payment_mode]}</span>
             <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', PAYMENT_TONE[o.payment_status])}>{label(o.payment_status)}</span>
+            {o.gift_wrap && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-800">
+                <Gift className="size-3" /> Gift wrap
+              </span>
+            )}
           </div>
-          {o.balance_due_on_delivery > 0 && <p className="mt-1 text-xs text-slate-500">Collect on delivery: {formatINR(o.balance_due_on_delivery)}</p>}
+          {o.balance_due_on_delivery > 0 && o.payment_status !== 'PAID' && (
+            <p className="mt-1 text-xs text-slate-500">Collect on delivery: {formatINR(o.balance_due_on_delivery)}</p>
+          )}
         </div>
 
         <div className="text-sm">
@@ -315,6 +362,18 @@ function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid }: O
             Mark payment received ({formatINR(amountDueNow(o))})
           </ActionButton>
         )}
+        {collectable && (
+          <ActionButton
+            onClick={() => onCollected(o)}
+            disabled={false}
+            title="Use once the courier has remitted (or confirmed) the amount collected on delivery"
+            busy={isBusy('COLLECTED')}
+            icon={<HandCoins className="size-4" />}
+            className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+          >
+            Mark {isCod ? 'cash' : 'balance'} collected ({formatINR(o.balance_due_on_delivery)})
+          </ActionButton>
+        )}
         <ActionButton onClick={() => onShip(o, 'SHIPROCKET')} disabled={!!shipBlocked} title={shipBlocked} busy={isBusy('SHIPROCKET')} icon={<Truck className="size-4" />}>
           Create Shiprocket Order / Generate AWB
         </ActionButton>
@@ -351,7 +410,28 @@ function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid }: O
             <p className="mt-2 text-xs text-slate-500">
               MRP {formatINR(o.total_mrp)} · Discount {formatINR(o.discount_amount)} · Advance paid {formatINR(o.advance_paid)}
             </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {[
+                o.offer_label && `${o.offer_label} −${formatINR(o.offer_discount)}`,
+                o.cod_fee > 0 && `COD fee +${formatINR(o.cod_fee)}`,
+                o.gift_wrap_fee > 0 && `Gift wrap +${formatINR(o.gift_wrap_fee)}`,
+                o.gift_card_amount > 0 && `Gift card −${formatINR(o.gift_card_amount)}`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+            {o.free_gift && <p className="mt-1 text-xs font-semibold text-amber-800">Pack free gift: {o.free_gift}</p>}
             {o.payment_gateway_ref && <p className="mt-1 font-mono text-xs text-slate-400">Ref: {o.payment_gateway_ref}</p>}
+            {isCod && o.user_id && (
+              <button
+                type="button"
+                onClick={() => onBlockCod(o)}
+                disabled={isBusy('BLOCK')}
+                className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-red-700 hover:underline"
+              >
+                <Ban className="size-3.5" /> Stop COD for this customer (refused parcel)
+              </button>
+            )}
           </div>
           <div>
             <p className="mb-1 text-xs font-semibold text-slate-500 uppercase">Ship to</p>
@@ -362,6 +442,12 @@ function OrderCard({ order: o, busy, onShip, onNotify, onStatus, onMarkPaid }: O
               <br />
               {o.shipping_address.city}, {o.shipping_address.state} – {o.shipping_address.pincode}
             </p>
+            {o.gift_wrap && (
+              <div className="mt-3 rounded-lg bg-rose-50 p-3 text-rose-900">
+                <p className="text-xs font-semibold uppercase">Gift wrap · no prices in the parcel</p>
+                {o.gift_message && <p className="mt-1 whitespace-pre-line">“{o.gift_message}”</p>}
+              </div>
+            )}
           </div>
         </div>
       )}

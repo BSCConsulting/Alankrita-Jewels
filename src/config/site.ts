@@ -33,11 +33,36 @@ export const BUSINESS: { legalName: string; address: string; gstin: string; emai
   grievanceOfficer: 'Lakshmi · +91 90326 54111',
 }
 
+// Every value in PAYMENT_RULES and OFFER_RULES is enforced by public.place_order() in
+// supabase/migrations/005_growth_features.sql; tests/pricingParity.test.ts fails if the two drift apart.
 export const PAYMENT_RULES = {
   prepaidDiscountRate: 0.05,
   partialCodAdvance: 150,
   /** Matches the cancel-stale-orders cron in supabase/migrations/003_auto_cancel_unpaid_orders.sql. */
   unpaidHoldHours: 48,
+  /** Full cash on delivery: handling fee, largest amount a courier collects, and open COD orders per customer. */
+  codFee: 49,
+  codMaxAmount: 5999,
+  maxOpenCodOrders: 2,
+} as const
+
+export const OFFER_RULES = {
+  /** Automatic cart-value savings; the highest tier reached applies. */
+  tiers: [
+    { minSubtotal: 2499, discount: 150 },
+    { minSubtotal: 4999, discount: 350 },
+    { minSubtotal: 9999, discount: 800 },
+  ],
+  /** Bridal set saving: distinct traditional pieces in one order. The highest step reached applies. */
+  bundleTypes: ['1-gram-gold', 'nakshi-temple', 'american-diamond'],
+  bundleSteps: [
+    { minPieces: 3, rate: 0.07 },
+    { minPieces: 5, rate: 0.12 },
+  ],
+  freeGiftMinSubtotal: 3999,
+  freeGift: 'Velvet jewellery pouch',
+  giftWrapFee: 49,
+  giftMessageMaxLength: 200,
 } as const
 
 /** Category slugs with hand-tuned landing pages. */

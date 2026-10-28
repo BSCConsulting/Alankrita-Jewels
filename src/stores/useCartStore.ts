@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { PricedLine } from '@/lib/pricing'
+import type { JewelleryType } from '@/types'
 
 export interface CartItem {
   key: string
@@ -7,6 +9,8 @@ export interface CartItem {
   slug: string
   title: string
   teluguTitle: string | null
+  /** Optional: bags saved before the bridal set offer get it on the next catalogue sync. */
+  jewelleryType?: JewelleryType
   image: string
   mrp: number
   salePrice: number
@@ -35,6 +39,7 @@ export interface SyncProduct {
   id: string
   title: string
   telugu_title: string | null
+  jewellery_type: JewelleryType
   image: string
   mrp: number
   sale_price: number
@@ -42,7 +47,7 @@ export interface SyncProduct {
   in_stock: boolean
 }
 
-/** Mirrors place_order (supabase/migrations/004_order_limits.sql). */
+/** Mirrors place_order (supabase/migrations/005_growth_features.sql). */
 export const MAX_QTY_PER_PRODUCT = 10
 export const MAX_PIECES_PER_ORDER = 20
 
@@ -104,7 +109,17 @@ export const useCartStore = create<CartState>()(
           }
           const quantity = Math.min(i.quantity, limit)
           if (p.sale_price !== i.salePrice || quantity !== i.quantity) changed.push(p.title)
-          items.push({ ...i, title: p.title, teluguTitle: p.telugu_title, image: p.image, mrp: p.mrp, salePrice: p.sale_price, maxQty: p.stock_count, quantity })
+          items.push({
+            ...i,
+            title: p.title,
+            teluguTitle: p.telugu_title,
+            jewelleryType: p.jewellery_type,
+            image: p.image,
+            mrp: p.mrp,
+            salePrice: p.sale_price,
+            maxQty: p.stock_count,
+            quantity,
+          })
         }
         set({ items })
         return { removed, changed }
@@ -125,5 +140,5 @@ export function addLimitMessage(requested: number, added: number): string | null
 
 export const useCartCount = () => useCartStore((s) => s.items.reduce((n, i) => n + i.quantity, 0))
 
-export const toPricedLines = (items: CartItem[]) =>
-  items.map((i) => ({ mrp: i.mrp, sale_price: i.salePrice, quantity: i.quantity }))
+export const toPricedLines = (items: CartItem[]): PricedLine[] =>
+  items.map((i) => ({ mrp: i.mrp, sale_price: i.salePrice, quantity: i.quantity, product_id: i.productId, jewellery_type: i.jewelleryType }))

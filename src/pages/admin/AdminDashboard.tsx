@@ -43,9 +43,9 @@ export default function AdminDashboard() {
       {stats && (
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-200 bg-white p-5">
-            <h2 className="font-semibold">Partial COD balance to collect</h2>
+            <h2 className="font-semibold">Cash to collect on delivery</h2>
             <p className="mt-2 text-3xl font-bold">{formatINR(stats.codBalanceOutstanding)}</p>
-            <p className="text-sm text-slate-500">Across undelivered Partial COD orders — reconcile with courier remittances.</p>
+            <p className="text-sm text-slate-500">Across undelivered COD and Partial COD orders — reconcile with courier remittances.</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-5">
             <h2 className="flex items-center gap-2 font-semibold">

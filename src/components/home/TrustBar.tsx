@@ -4,7 +4,7 @@ const ITEMS = [
   { icon: ShieldCheck, title: '1-Year Re-polish Guarantee', body: 'On all 1 gram gold' },
   { icon: Droplets, title: 'Waterproof PVD Range', body: '316L steel, never fades' },
   { icon: Truck, title: '2–3 Day Delivery', body: 'Insured across AP & TS' },
-  { icon: BadgeIndianRupee, title: 'Partial COD', body: 'Reserve with just ₹150' },
+  { icon: BadgeIndianRupee, title: 'Cash on delivery', body: 'Or reserve with just ₹150' },
 ]
 
 export function TrustBar() {

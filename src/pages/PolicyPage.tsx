@@ -28,7 +28,12 @@ const POLICIES: Record<string, Policy> = {
     sections: [
       {
         heading: 'Dispatch',
-        body: <p>Orders are quality checked, packed and handed to an insured courier within 24 hours of payment confirmation (Partial COD orders: after the advance is received).</p>,
+        body: (
+          <p>
+            Orders are quality checked, packed and handed to an insured courier within 24 hours of payment confirmation (Partial COD orders: after the advance is
+            received; cash-on-delivery orders: after we confirm the order).
+          </p>
+        ),
       },
       {
         heading: 'Delivery time',
@@ -49,11 +54,13 @@ const POLICIES: Record<string, Policy> = {
         body: <p>As soon as your parcel ships, we send the courier name and tracking link on WhatsApp to the mobile number used at checkout.</p>,
       },
       {
-        heading: 'Partial COD',
+        heading: 'Cash on delivery',
         body: (
           <p>
-            With Partial COD you pay ₹{PAYMENT_RULES.partialCodAdvance} online to reserve your piece and pay the balance in cash or UPI to the courier on delivery. Full cash on delivery is not
-            available.
+            With Partial COD you pay ₹{PAYMENT_RULES.partialCodAdvance} online to reserve your piece and pay the balance in cash or UPI to the courier on delivery. Full cash on
+            delivery is available on orders up to ₹{PAYMENT_RULES.codMaxAmount.toLocaleString('en-IN')} with a ₹{PAYMENT_RULES.codFee} handling fee; a customer can have up to{' '}
+            {PAYMENT_RULES.maxOpenCodOrders} cash-on-delivery orders on the way at a time. If cash-on-delivery parcels are refused, we may ask for online payment on future
+            orders.
           </p>
         ),
       },
@@ -159,7 +166,8 @@ const POLICIES: Record<string, Policy> = {
         body: (
           <p>
             All prices are in Indian Rupees and include GST. Online UPI payment gets an extra {Math.round(PAYMENT_RULES.prepaidDiscountRate * 100)}% discount. Partial COD orders need a ₹
-            {PAYMENT_RULES.partialCodAdvance} advance, adjusted in the final bill. An order is confirmed once payment (or the Partial COD advance) is received.
+            {PAYMENT_RULES.partialCodAdvance} advance, adjusted in the final bill. Full cash-on-delivery orders carry a ₹{PAYMENT_RULES.codFee} handling fee. An order is
+            confirmed once payment (or the Partial COD advance) is received; cash-on-delivery orders are confirmed by us before dispatch.
           </p>
         ),
       },

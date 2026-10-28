@@ -14,7 +14,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (order instanceof Response) return order
   if (!live) return json(mockShipment('DELHIVERY'))
 
-  const isCod = order.payment_mode === 'PARTIAL_COD'
+  const isCod = Number(order.balance_due_on_delivery) > 0
   const items = order.items ?? []
   const data = {
     shipments: [

@@ -10,8 +10,8 @@ import { useAsync } from '@/hooks/useAsync'
 import { cn, slugify } from '@/lib/format'
 import { videoDuration } from '@/lib/media'
 import { toErrorMessage } from '@/lib/supabase'
-import { categoriesForSelect, fetchAdminProduct, saveProduct, uploadMedia, type MediaInput } from '@/services/admin'
-import { JEWELLERY_TYPES, type JewelleryType } from '@/types'
+import { categoriesForSelect, fetchAdminProduct, saveProduct, uploadMedia, uploadProductImage, type MediaInput } from '@/services/admin'
+import { JEWELLERY_TYPES, OCCASIONS, STONES, type JewelleryType, type Occasion, type Stone } from '@/types'
 import { Toggle } from './AdminProductsPage'
 
 const PLATING_PRESETS = [
@@ -45,6 +45,8 @@ const schema = z
     plating_type: z.string().max(120).optional(),
     warranty_details: z.string().max(120).optional(),
     available_sizes: z.array(z.string().trim().min(1)).max(20),
+    occasions: z.array(z.enum(OCCASIONS as [Occasion, ...Occasion[]])),
+    stones: z.array(z.enum(STONES as [Stone, ...Stone[]])),
     stock_count: z.number({ invalid_type_error: 'Enter stock' }).int().min(0),
     in_stock: z.boolean(),
     featured: z.boolean(),
@@ -56,8 +58,12 @@ type FormValues = z.infer<typeof schema>
 interface ImageDraft {
   key: string
   url: string
+  thumbUrl?: string | null
   file?: File
 }
+
+const OCCASION_LABEL: Record<Occasion, string> = { wedding: 'Wedding', festival: 'Festival', daily: 'Daily wear', office: 'Office', party: 'Party' }
+const STONE_LABEL: Record<Stone, string> = { kempu: 'Kempu (ruby red)', emerald: 'Emerald green', pearl: 'Pearl', cz: 'CZ / American diamond', plain: 'Plain gold' }
 type ReelDraft = { url: string; file?: File } | null
 
 /** Keyed by id so moving from "edit" to "add product" starts from a clean form. */
@@ -94,12 +100,16 @@ function ProductForm({ id }: { id?: string }) {
       plating_type: 'Micro Gold Plated',
       warranty_details: '1-Year Re-polishing Guarantee',
       available_sizes: [],
+      occasions: [],
+      stones: [],
       stock_count: 10,
       in_stock: true,
       featured: false,
     },
   })
   const sizes = watch('available_sizes')
+  const occasions = watch('occasions')
+  const stones = watch('stones')
   const title = watch('title')
   const type = watch('jewellery_type')
   const errors = formState.errors
@@ -122,11 +132,13 @@ function ProductForm({ id }: { id?: string }) {
       plating_type: existing.plating_type ?? '',
       warranty_details: existing.warranty_details ?? '',
       available_sizes: existing.available_sizes,
+      occasions: existing.occasions ?? [],
+      stones: existing.stones ?? [],
       stock_count: existing.stock_count,
       in_stock: existing.in_stock,
       featured: existing.featured,
     })
-    const imgs = existing.media.filter((m) => m.media_type === 'image').map((m) => ({ key: m.id, url: m.url }))
+    const imgs = existing.media.filter((m) => m.media_type === 'image').map((m) => ({ key: m.id, url: m.url, thumbUrl: m.thumb_url ?? null }))
     setImages(imgs)
     setThumbKey(existing.media.find((m) => m.is_thumbnail)?.id ?? imgs[0]?.key ?? null)
     const r = existing.media.find((m) => m.media_type === 'video_reel')
@@ -166,12 +178,15 @@ function ProductForm({ id }: { id?: string }) {
 
   const toggleSize = (s: string) =>
     setValue('available_sizes', sizes.includes(s) ? sizes.filter((x) => x !== s) : [...sizes, s], { shouldDirty: true })
+  const toggleOccasion = (o: Occasion) =>
+    setValue('occasions', occasions.includes(o) ? occasions.filter((x) => x !== o) : [...occasions, o], { shouldDirty: true })
+  const toggleStone = (s: Stone) => setValue('stones', stones.includes(s) ? stones.filter((x) => x !== s) : [...stones, s], { shouldDirty: true })
 
   const onSubmit = handleSubmit(async (values) => {
     if (!images.length) return setMediaError('Add at least one product image')
     try {
-      const uploadedImages = await Promise.all(
-        images.map(async (img) => (img.file ? { key: img.key, url: await uploadMedia(img.file, 'image') } : img)),
+      const uploadedImages: ImageDraft[] = await Promise.all(
+        images.map(async (img) => (img.file ? { key: img.key, ...(await uploadProductImage(img.file)) } : img)),
       )
       // Keep the uploaded URLs so a retry after a failed save does not upload the same files again.
       images.forEach((img) => img.file && URL.revokeObjectURL(img.url))
@@ -184,7 +199,7 @@ function ProductForm({ id }: { id?: string }) {
       }
 
       const ordered = [...uploadedImages].sort((a, b) => Number(b.key === thumbKey) - Number(a.key === thumbKey))
-      const media: MediaInput[] = ordered.map((img, i) => ({ media_type: 'image', url: img.url, is_thumbnail: i === 0 }))
+      const media: MediaInput[] = ordered.map((img, i) => ({ media_type: 'image', url: img.url, thumb_url: img.thumbUrl ?? null, is_thumbnail: i === 0 }))
       if (reelUrl) media.push({ media_type: 'video_reel', url: reelUrl, is_thumbnail: false })
 
       await saveProduct(
@@ -383,6 +398,8 @@ function ProductForm({ id }: { id?: string }) {
                 ))}
               </select>
             </Field>
+            <TagPicker label="Occasions" hint="Powers the shop-by-occasion filters" options={OCCASIONS} labels={OCCASION_LABEL} selected={occasions} onToggle={toggleOccasion} />
+            <TagPicker label="Stones" hint="Powers the stone colour filter" options={STONES} labels={STONE_LABEL} selected={stones} onToggle={toggleStone} />
           </Card>
 
           <Card title="Pricing">
@@ -486,6 +503,42 @@ function ProductForm({ id }: { id?: string }) {
         </div>
       </div>
     </form>
+  )
+}
+
+function TagPicker<T extends string>({
+  label,
+  hint,
+  options,
+  labels,
+  selected,
+  onToggle,
+}: {
+  label: string
+  hint: string
+  options: T[]
+  labels: Record<T, string>
+  selected: T[]
+  onToggle: (value: T) => void
+}) {
+  return (
+    <div>
+      <span className="ak-label">{label}</span>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => (
+          <button
+            key={o}
+            type="button"
+            aria-pressed={selected.includes(o)}
+            onClick={() => onToggle(o)}
+            className={cn('rounded-full border px-2.5 py-1 text-xs', selected.includes(o) ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-300')}
+          >
+            {labels[o]}
+          </button>
+        ))}
+      </div>
+      <span className="mt-1 block text-xs text-slate-500">{hint}</span>
+    </div>
   )
 }
 

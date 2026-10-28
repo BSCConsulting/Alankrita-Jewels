@@ -93,7 +93,7 @@ export function Footer() {
           ))}
         </nav>
         <p className="mt-3 opacity-70">
-          © {new Date().getFullYear()} {SITE.name}. Prices inclusive of GST. UPI · Partial COD.
+          © {new Date().getFullYear()} {SITE.name}. Prices inclusive of GST. UPI · Partial COD · Cash on delivery.
         </p>
       </div>
     </footer>

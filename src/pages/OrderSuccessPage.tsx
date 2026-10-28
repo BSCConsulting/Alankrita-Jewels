@@ -22,8 +22,10 @@ export default function OrderSuccessPage() {
 
   const cancelled = order?.order_status === 'CANCELLED'
   const failed = order?.payment_status === 'FAILED' && !cancelled
-  const awaitingPayment = order?.payment_status === 'PENDING' && !cancelled
   const dueNow = order ? amountDueNow(order) : 0
+  // Cash-on-delivery orders are pending payment by design; nothing is awaited online.
+  const awaitingPayment = order?.payment_status === 'PENDING' && !cancelled && dueNow > 0
+  const payOnDelivery = order?.payment_mode === 'COD' && !cancelled
 
   if (!loading && !order)
     return (
@@ -72,9 +74,11 @@ export default function OrderSuccessPage() {
               ? 'will be confirmed once payment is received.'
               : cancelled
                 ? 'has been cancelled.'
-                : failed
+                  : failed
                   ? 'is not confirmed because the payment did not go through. Message us on WhatsApp and we will help you complete it.'
-                  : 'is confirmed.'}
+                  : payOnDelivery
+                    ? `is placed. Pay ${formatINR(order!.balance_due_on_delivery)} in cash or UPI to the courier on delivery.`
+                    : 'is confirmed.'}
           </p>
           {failed && (
             <a
@@ -130,6 +134,36 @@ export default function OrderSuccessPage() {
             </ul>
           </div>
           <dl className="space-y-1.5 p-5 text-sm">
+            {order.offer_label && order.offer_discount > 0 && (
+              <div className="flex justify-between text-emerald-700">
+                <dt>{order.offer_label}</dt>
+                <dd>−{formatINR(order.offer_discount)}</dd>
+              </div>
+            )}
+            {order.prepaid_discount > 0 && (
+              <div className="flex justify-between text-emerald-700">
+                <dt>UPI offer (5%)</dt>
+                <dd>−{formatINR(order.prepaid_discount)}</dd>
+              </div>
+            )}
+            {order.cod_fee > 0 && (
+              <div className="flex justify-between">
+                <dt>Cash on delivery handling</dt>
+                <dd>+{formatINR(order.cod_fee)}</dd>
+              </div>
+            )}
+            {order.gift_wrap_fee > 0 && (
+              <div className="flex justify-between">
+                <dt>Gift wrap</dt>
+                <dd>+{formatINR(order.gift_wrap_fee)}</dd>
+              </div>
+            )}
+            {order.gift_card_amount > 0 && (
+              <div className="flex justify-between text-emerald-700">
+                <dt>Gift card</dt>
+                <dd>−{formatINR(order.gift_card_amount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt>Order total</dt>
               <dd className="font-semibold">{formatINR(order.final_amount)}</dd>
@@ -140,11 +174,18 @@ export default function OrderSuccessPage() {
                 <dd>{formatINR(order.advance_paid)}</dd>
               </div>
             )}
-            {order.balance_due_on_delivery > 0 && !cancelled && (
+            {order.balance_due_on_delivery > 0 && !cancelled && order.payment_status !== 'PAID' && (
               <div className="flex justify-between font-semibold">
                 <dt>Pay courier on delivery</dt>
                 <dd>{formatINR(order.balance_due_on_delivery)}</dd>
               </div>
+            )}
+            {(order.gift_wrap || order.free_gift) && (
+              <p className="pt-1 text-xs text-ink-muted">
+                {[order.gift_wrap && 'Gift wrapped, no prices in the parcel', order.free_gift && `Free ${order.free_gift.toLowerCase()} included`]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
             )}
           </dl>
           <div className="p-5 text-sm">

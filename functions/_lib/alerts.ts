@@ -57,7 +57,21 @@ export async function alertNewOrder(env: Env, order: OrderRow, adminUrl: string)
   if (!alertsEnabled(env) || !(await firstTime(`order:${order.id}`))) return
   const a = order.shipping_address
   const items = (order.items ?? []).map((i) => `• ${escapeHtml(i.product_title)} × ${i.quantity} — ${inr(i.unit_price * i.quantity)}`).join('\n')
-  const mode = order.payment_mode === 'PARTIAL_COD' ? `Partial COD (advance ${inr(amountDueNow(order))})` : 'UPI prepaid'
+  const due = amountDueNow(order)
+  const payment =
+    order.payment_mode === 'COD'
+      ? `💵 <b>Cash on delivery</b> · collect ${inr(order.balance_due_on_delivery)} — call to confirm before dispatch`
+      : order.payment_mode === 'PARTIAL_COD'
+        ? `💳 Partial COD (advance ${inr(due)}) · <b>awaiting ${inr(due)}</b>`
+        : due > 0
+          ? `💳 UPI prepaid · <b>awaiting ${inr(due)}</b>`
+          : '💳 Paid in full by gift card'
+  const extras = [
+    order.offer_label && `🏷️ ${escapeHtml(order.offer_label)}`,
+    order.gift_wrap && '🎁 Gift wrap',
+    order.gift_message && `💌 “${escapeHtml(order.gift_message)}”`,
+    order.free_gift && `➕ Pack free gift: ${escapeHtml(order.free_gift)}`,
+  ].filter(Boolean)
   await sendAlert(
     env,
     [
@@ -65,7 +79,8 @@ export async function alertNewOrder(env: Env, order: OrderRow, adminUrl: string)
       '',
       `👤 ${escapeHtml(order.customer_name)} · ${escapeHtml(order.customer_phone)}`,
       `📍 ${escapeHtml(a.city)}, ${escapeHtml(a.state)} ${escapeHtml(a.pincode)}`,
-      `💳 ${mode} · <b>awaiting ${inr(amountDueNow(order))}</b>`,
+      payment,
+      ...(extras.length ? ['', ...extras] : []),
       '',
       items,
       '',

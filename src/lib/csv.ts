@@ -5,7 +5,7 @@ import { maskPhone } from './format'
 export const PRODUCT_REQUIRED_COLUMNS = ['title', 'category_slug', 'mrp', 'sale_price', 'jewellery_type', 'image_urls'] as const
 export const PRODUCT_OPTIONAL_COLUMNS = [
   'slug', 'telugu_title', 'description', 'plating_type', 'warranty_details',
-  'available_sizes', 'stock_count', 'in_stock', 'featured', 'reel_url',
+  'available_sizes', 'stock_count', 'in_stock', 'featured', 'reel_url', 'occasions', 'stones',
 ] as const
 export const PRODUCT_COLUMNS = [...PRODUCT_REQUIRED_COLUMNS, ...PRODUCT_OPTIONAL_COLUMNS]
 
@@ -50,6 +50,8 @@ export function productsToCsv(products: Product[], categorySlugById: Map<string,
         in_stock: p.in_stock,
         featured: p.featured,
         reel_url: media.find((m) => m.media_type === 'video_reel')?.url,
+        occasions: (p.occasions ?? []).join('|'),
+        stones: (p.stones ?? []).join('|'),
       }
       return PRODUCT_COLUMNS.map((c) => row[c])
     }),
@@ -60,6 +62,7 @@ const ORDER_COLUMNS = [
   'order_number', 'placed_at_ist', 'customer_name', 'customer_phone', 'address', 'landmark', 'city', 'state', 'pincode',
   'items', 'total_mrp', 'discount', 'final_amount', 'payment_mode', 'payment_status', 'advance_paid', 'balance_due_on_delivery',
   'payment_ref', 'order_status', 'courier', 'awb', 'tracking_url',
+  'offer', 'coupon_code', 'cod_fee', 'gift_card_amount', 'gift_wrap', 'gift_message', 'free_gift',
 ] as const
 
 const istTimestamp = (iso: string) =>
@@ -92,6 +95,13 @@ export function ordersToCsv(orders: Order[]): string {
       o.shipping_provider,
       o.awb_number,
       o.tracking_url,
+      o.offer_label ? `${o.offer_label} (−${o.offer_discount})` : '',
+      o.coupon_code,
+      o.cod_fee,
+      o.gift_card_amount,
+      o.gift_wrap ? 'yes' : '',
+      o.gift_message,
+      o.free_gift,
     ]),
   )
 }

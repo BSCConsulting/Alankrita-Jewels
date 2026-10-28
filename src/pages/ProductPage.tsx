@@ -112,6 +112,7 @@ export default function ProductPage() {
         slug: product.slug,
         title: product.title,
         teluguTitle: product.telugu_title,
+        jewelleryType: product.jewellery_type,
         image: productThumbnail(product),
         mrp: product.mrp,
         salePrice: product.sale_price,

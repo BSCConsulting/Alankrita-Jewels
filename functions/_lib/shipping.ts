@@ -13,7 +13,7 @@ export interface ShipOrderPayload {
   customer_phone: string
   shipping_address: { address_line: string; landmark?: string; city: string; state: string; pincode: string }
   final_amount: number
-  payment_mode: 'PREPAID_UPI' | 'PARTIAL_COD'
+  payment_mode: 'PREPAID_UPI' | 'PARTIAL_COD' | 'COD'
   balance_due_on_delivery: number
   items?: Array<{ id: string; product_id: string | null; product_title: string; quantity: number; unit_price: number }>
 }
@@ -44,14 +44,17 @@ export function isValidPayload(o: Partial<ShipOrderPayload> | undefined): o is S
 
 /**
  * The order to book, read from the database rather than trusted from the request body, and only once
- * it is paid and not yet shipped. Without Supabase (local mock mode) the posted order is used as-is.
+ * it is paid (or is a cash-on-delivery order) and not yet shipped. Without Supabase (local mock mode)
+ * the posted order is used as-is.
  */
 export async function loadShippableOrder(env: Env, posted: Partial<ShipOrderPayload> | undefined): Promise<ShipOrderPayload | Response> {
   if (!hasSupabase(env)) return isValidPayload(posted) ? posted : error('A complete order payload is required', 400)
   const order = posted?.id ? await fetchOrder(env, posted.id) : null
   if (!order) return error('Order not found', 404)
   if (order.order_status === 'CANCELLED') return error('Order is cancelled', 409)
-  if (order.payment_status !== 'PAID' && order.payment_status !== 'PARTIAL_PAID') return error('Payment not received yet', 409)
+  const paid = order.payment_status === 'PAID' || order.payment_status === 'PARTIAL_PAID'
+  const codUnpaid = order.payment_mode === 'COD' && order.payment_status === 'PENDING'
+  if (!paid && !codUnpaid) return error('Payment not received yet', 409)
   if (order.order_status !== 'PLACED' && order.order_status !== 'CONFIRMED') return error(`Order is already ${order.order_status.toLowerCase()}`, 409)
   if (order.awb_number) return error('AWB already generated', 409)
   return { ...order, created_at: order.created_at ?? new Date().toISOString() }

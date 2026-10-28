@@ -11,7 +11,7 @@ import {
 import { cn, formatINR, safeHttpUrl, slugify } from '@/lib/format'
 import { toErrorMessage } from '@/lib/supabase'
 import { bulkInsertProducts, existingSlugs, fetchCategories, type BulkProductRow } from '@/services/admin'
-import { JEWELLERY_TYPES, type JewelleryType } from '@/types'
+import { JEWELLERY_TYPES, OCCASIONS, STONES, type JewelleryType, type Occasion, type Stone } from '@/types'
 
 const isHttpsUrl = (value: string) => safeHttpUrl(value)?.startsWith('https://') ?? false
 
@@ -49,6 +49,14 @@ const rowSchema = z
       z.array(z.string().refine(isHttpsUrl, 'image_urls must be full https:// URLs')).min(1, 'at least one image URL is required'),
     ),
     reel_url: z.preprocess(text, z.union([z.literal(''), z.string().refine(isHttpsUrl, 'reel_url must be a full https:// URL')])),
+    occasions: z.preprocess(
+      (v) => list(v).map((s) => s.toLowerCase()),
+      z.array(z.enum(OCCASIONS as [Occasion, ...Occasion[]], { message: `occasions must be from ${OCCASIONS.join(', ')}` })),
+    ),
+    stones: z.preprocess(
+      (v) => list(v).map((s) => s.toLowerCase()),
+      z.array(z.enum(STONES as [Stone, ...Stone[]], { message: `stones must be from ${STONES.join(', ')}` })),
+    ),
   })
   .refine((r) => r.sale_price <= r.mrp, { path: ['sale_price'], message: 'sale_price cannot exceed mrp' })
 
@@ -65,11 +73,11 @@ const TEMPLATE = [
     'Lakshmi Kasu Haram', '1-gram-gold-jewellery', '8999', '5499', 'nakshi-temple',
     'https://example.com/kasu-1.jpg|https://example.com/kasu-2.jpg', 'lakshmi-kasu-haram', 'లక్ష్మీ కాసుల హారం',
     '"Antique Lakshmi coin haram for weddings"', 'Micro Gold Plated', '1-Year Re-polishing Guarantee', 'Adjustable', '8', 'true', 'true',
-    'https://example.com/kasu-reel.mp4',
+    'https://example.com/kasu-reel.mp4', 'wedding|festival', 'kempu',
   ].join(','),
   [
     'PVD Twisted Hoop Earrings', 'anti-tarnish-waterproof-jewellery', '999', '599', 'anti-tarnish',
-    'https://example.com/hoops.jpg', '', '', '', 'PVD 316L Stainless Steel', '1-Year Colour Warranty', '', '25', '', '', '',
+    'https://example.com/hoops.jpg', '', '', '', 'PVD 316L Stainless Steel', '1-Year Colour Warranty', '', '25', '', '', '', 'daily|office', 'plain',
   ].join(','),
 ].join('\n')
 
@@ -151,6 +159,8 @@ export default function BulkUploadPage() {
                 plating_type: v.plating_type || null,
                 warranty_details: v.warranty_details || null,
                 available_sizes: v.available_sizes,
+                occasions: [...new Set(v.occasions)],
+                stones: [...new Set(v.stones)],
                 stock_count: v.stock_count,
                 in_stock: v.in_stock && v.stock_count > 0,
                 featured: v.featured,
