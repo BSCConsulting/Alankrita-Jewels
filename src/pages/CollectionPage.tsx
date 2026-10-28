@@ -76,7 +76,7 @@ export default function CollectionPage() {
               <span key={c.path} className="flex items-center gap-1">
                 {i > 0 && <ChevronRight className="size-3" />}
                 {i < crumbs.length - 1 ? (
-                  <Link to={c.path} className="hover:underline">
+                  <Link to={c.path} className="ak-hit relative hover:underline">
                     {c.name}
                   </Link>
                 ) : (
@@ -104,7 +104,7 @@ export default function CollectionPage() {
                 key={c.id}
                 to={categoryPath(c, categories.data!)}
                 className={cn(
-                  'shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition',
+                  'inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 py-2 text-sm font-medium transition active:scale-95',
                   c.slug === slug ? 'border-primary bg-primary text-primary-ink' : 'border-line hover:border-primary',
                 )}
               >

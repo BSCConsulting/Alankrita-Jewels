@@ -22,7 +22,7 @@ export function ThemeToggle({ className, variant = 'pill' }: { className?: strin
       <button
         type="button"
         onClick={toggle}
-        className={cn('grid size-9 place-items-center rounded-full border shadow-sm', tone, className)}
+        className={cn('ak-hit relative grid size-9 place-items-center rounded-full border shadow-sm transition active:scale-95', tone, className)}
         aria-label={THEMES[target].switchLabel}
         title={THEMES[target].switchLabel}
       >
@@ -51,7 +51,7 @@ export function ThemeToggle({ className, variant = 'pill' }: { className?: strin
           onClick={() => setOverride(null)}
           title="Reset to the collection's default look"
           aria-label="Reset theme to automatic"
-          className="grid size-8 place-items-center rounded-full border border-line bg-surface text-ink-muted shadow"
+          className="ak-hit relative grid size-8 place-items-center rounded-full border border-line bg-surface text-ink-muted shadow"
         >
           <RotateCcw className="size-3.5" />
         </button>

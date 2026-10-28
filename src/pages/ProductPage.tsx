@@ -187,7 +187,7 @@ export default function ProductPage() {
             <span key={c.path} className="flex items-center gap-1">
               {i > 0 && <ChevronRight className="size-3" />}
               {i < crumbs.length - 1 ? (
-                <Link to={c.path} className="hover:text-primary">
+                <Link to={c.path} className="ak-hit relative hover:text-primary">
                   {c.name}
                 </Link>
               ) : (
@@ -225,7 +225,7 @@ export default function ProductPage() {
               {reel && (
                 <button
                   onClick={() => setReelOpen(true)}
-                  className="absolute right-3 bottom-3 flex items-center gap-2 rounded-full bg-black/75 py-1.5 pr-4 pl-1.5 text-sm font-semibold text-white shadow-lg backdrop-blur"
+                  className="absolute right-3 bottom-3 flex items-center gap-2 rounded-full bg-black/75 py-2 pr-4 pl-2 text-sm font-semibold text-white shadow-lg backdrop-blur transition active:scale-95"
                 >
                   <span className="grid size-7 place-items-center rounded-full bg-white text-black">
                     <Play className="ml-0.5 size-3.5 fill-current" />
@@ -325,7 +325,7 @@ export default function ProductPage() {
                         setSizeError(false)
                       }}
                       className={cn(
-                        'min-w-14 border px-4 py-2.5 text-sm font-medium transition',
+                        'min-h-11 min-w-14 border px-4 py-2.5 text-sm font-medium transition active:scale-95',
                         size === s ? 'border-primary bg-primary text-primary-ink' : 'border-line hover:border-primary',
                       )}
                       style={{ borderRadius: 'var(--ak-radius-pill)' }}
@@ -340,14 +340,14 @@ export default function ProductPage() {
 
             <div className="mt-6 flex items-center gap-4">
               <div className="flex items-center rounded-full border border-line">
-                <button onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={soldOut} className="p-3" aria-label="Decrease quantity">
+                <button onClick={() => setQty((q) => Math.max(1, q - 1))} disabled={soldOut} className="p-3.5 transition active:scale-90" aria-label="Decrease quantity">
                   <Minus className="size-4" />
                 </button>
                 <span className="w-8 text-center font-semibold">{qty}</span>
                 <button
                   onClick={() => setQty((q) => Math.max(1, Math.min(q + 1, product.stock_count, MAX_QTY_PER_PRODUCT)))}
                   disabled={soldOut}
-                  className="p-3"
+                  className="p-3.5 transition active:scale-90"
                   aria-label="Increase quantity"
                 >
                   <Plus className="size-4" />

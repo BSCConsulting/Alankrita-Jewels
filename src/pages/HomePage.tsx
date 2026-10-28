@@ -53,7 +53,7 @@ export default function HomePage() {
           eyebrow={THEMES[theme].name}
           title={THEMES[theme].featuredTitle}
           action={
-            <Link to={THEMES[theme].hero.primaryCta.to} className="flex items-center gap-1 text-sm font-semibold text-primary hover:underline">
+            <Link to={THEMES[theme].hero.primaryCta.to} className="-my-3 flex min-h-11 items-center gap-1 text-sm font-semibold text-primary hover:underline">
               View all <ArrowRight className="size-4" />
             </Link>
           }

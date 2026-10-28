@@ -233,7 +233,7 @@ export default function CheckoutPage() {
                   </span>
                   Verified <strong>{maskPhone(phone!)}</strong>
                 </p>
-                <button onClick={() => void signOut()} className="text-sm font-medium text-primary hover:underline">
+                <button onClick={() => void signOut()} className="ak-hit relative text-sm font-medium text-primary hover:underline">
                   Change
                 </button>
               </div>

@@ -38,7 +38,7 @@ export function Footer() {
           <ul className="grid grid-cols-2 gap-x-4 text-sm md:grid-cols-1">
             {NAV_LINKS.map((l) => (
               <li key={l.to}>
-                <Link to={l.to} className="inline-block py-1.5 opacity-90 hover:opacity-100 hover:underline">
+                <Link to={l.to} className="flex min-h-11 items-center opacity-90 hover:opacity-100 hover:underline md:min-h-0 md:py-1.5">
                   {l.label}
                 </Link>
               </li>
@@ -63,9 +63,9 @@ export function Footer() {
 
         <div>
           <p className="mb-3 text-xs font-semibold tracking-[0.2em] uppercase opacity-70">Talk to us</p>
-          <ul className="space-y-3 text-sm">
+          <ul className="space-y-1 text-sm md:space-y-3">
             <li>
-              <a href={`tel:${SITE.phoneE164}`} className="flex items-center gap-2 py-1 hover:underline">
+              <a href={`tel:${SITE.phoneE164}`} className="flex min-h-11 items-center gap-2 hover:underline md:min-h-0 md:py-1">
                 <Phone className="size-4" /> {SITE.phoneDisplay}
               </a>
             </li>
@@ -74,7 +74,7 @@ export function Footer() {
                 href={whatsappLink('Hi Alankrita Jewels!')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 py-1 hover:underline"
+                className="flex min-h-11 items-center gap-2 hover:underline md:min-h-0 md:py-1"
               >
                 <WhatsAppIcon className="size-4" /> WhatsApp us
               </a>
@@ -87,9 +87,9 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-current/15 px-4 py-5 text-center text-xs">
-        <nav aria-label="Help and policies" className="flex flex-wrap justify-center gap-x-5 gap-y-1">
+        <nav aria-label="Help and policies" className="flex flex-wrap justify-center gap-x-5 md:gap-y-1">
           {POLICY_LINKS.map((l) => (
-            <Link key={l.to} to={l.to} className="inline-block py-1.5 opacity-90 hover:opacity-100 hover:underline">
+            <Link key={l.to} to={l.to} className="inline-flex min-h-11 min-w-11 items-center justify-center opacity-90 hover:opacity-100 hover:underline md:min-h-0 md:py-1.5">
               {l.label}
             </Link>
           ))}

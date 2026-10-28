@@ -44,7 +44,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
   }
 
   return (
-    <Overlay open={open} onClose={onClose} label="Search" className="mt-2 w-full max-w-xl self-start sm:mt-16">
+    <Overlay open={open} onClose={onClose} label="Search" className="mt-[calc(0.5rem+env(safe-area-inset-top))] w-full max-w-xl self-start sm:mt-16">
       <div className="ak-card overflow-hidden bg-bg">
         <form
           role="search"

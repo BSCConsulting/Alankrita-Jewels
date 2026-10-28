@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en-IN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#4A0E17" />
+    <meta name="robots" content="noindex" />
+    <title>You are offline | Alankrita Jewels</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));
+        background: #fffdf9;
+        color: #2b0a10;
+        font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        text-align: center;
+      }
+      main { max-width: 22rem; }
+      img { width: 72px; height: 72px; border-radius: 16px; }
+      h1 { margin: 16px 0 4px; font: 700 24px/1.2 Georgia, serif; color: #4a0e17; }
+      p { margin: 0 0 8px; color: #6e4b45; }
+      a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        margin-top: 12px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .primary { background: #4a0e17; color: #f6e3a8; }
+      .outline { border: 1px solid rgb(212 175 55 / 0.6); color: #2b0a10; }
+      a:active { transform: scale(0.97); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/icon-192.png" alt="" />
+      <h1>You are offline</h1>
+      <p>Check your mobile data or Wi-Fi, then try again.</p>
+      <p lang="te">ఇంటర్నెట్ కనెక్షన్ లేదు. దయచేసి మళ్ళీ ప్రయత్నించండి.</p>
+      <a class="primary" href="/">Try again</a>
+      <!-- Keep in sync with SITE.phoneE164 / SITE.whatsappNumber in src/config/site.ts. -->
+      <a class="outline" href="tel:+919032654111">Call +91 90326 54111</a>
+      <a class="outline" href="https://wa.me/919032654111">WhatsApp us</a>
+    </main>
+  </body>
+</html>

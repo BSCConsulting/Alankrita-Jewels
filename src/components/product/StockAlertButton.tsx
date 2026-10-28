@@ -61,7 +61,7 @@ export function StockAlertButton({ productId, className }: { productId: string; 
       </button>
 
       <Overlay open={verifying} onClose={() => (setVerifying(false), setWanted(false))} label="Verify your number" placement="bottom-sheet">
-        <div className="ak-card bg-bg max-h-[92vh] w-full max-w-md overflow-y-auto rounded-b-none p-5 sm:rounded-b-[inherit]">
+        <div className="ak-card bg-bg max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-b-none p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:rounded-b-[inherit]">
           <div className="mb-3 flex items-start justify-between gap-3">
             <p className="text-sm text-ink-muted">Verify your WhatsApp number and we’ll message you the moment this piece is restocked.</p>
             <button type="button" onClick={() => (setVerifying(false), setWanted(false))} className="-m-2 p-2 text-ink-muted" aria-label="Close">

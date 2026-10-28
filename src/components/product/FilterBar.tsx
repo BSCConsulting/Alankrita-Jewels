@@ -84,7 +84,7 @@ export function FilterBar({ products, shown, filters, onChange, loading }: Props
             type="button"
             onClick={() => setOpen(true)}
             className={cn(
-              'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition',
+              'flex min-h-11 items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition active:scale-95',
               active ? 'border-primary bg-primary text-primary-ink' : 'border-line hover:border-primary',
             )}
           >
@@ -95,7 +95,7 @@ export function FilterBar({ products, shown, filters, onChange, loading }: Props
             <select
               value={filters.sort}
               onChange={(e) => onChange({ ...filters, sort: e.target.value as Sort })}
-              className="rounded-full border border-line bg-surface px-3 py-2 text-sm"
+              className="min-h-11 rounded-full border border-line bg-surface px-3 py-2 text-sm"
             >
               {SORTS.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -127,14 +127,14 @@ export function FilterBar({ products, shown, filters, onChange, loading }: Props
       )}
 
       <Overlay open={open} onClose={() => setOpen(false)} label="Filter designs" placement="bottom-sheet">
-        <div className="flex max-h-[85vh] w-full flex-col rounded-t-2xl bg-bg sm:w-[28rem] sm:rounded-2xl">
-          <div className="flex items-center justify-between border-b border-line px-5 py-4">
+        <div className="flex max-h-[85dvh] w-full flex-col rounded-t-2xl bg-bg md:w-[28rem] md:rounded-2xl">
+          <div data-sheet-drag className="flex items-center justify-between border-b border-line py-3 pr-2 pl-5">
             <h2 className="font-display text-xl font-semibold">Filter designs</h2>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close filters" className="-mr-2 p-2">
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close filters" className="grid size-11 place-items-center rounded-full transition active:scale-95">
               <X className="size-5" />
             </button>
           </div>
-          <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+          <div className="flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 py-5">
             {groups.map(({ group, title, options }) => {
               const selected: string[] = filters[group]
               const visible = options.filter((o) => o.count > 0 || selected.includes(o.id))
@@ -152,7 +152,7 @@ export function FilterBar({ products, shown, filters, onChange, loading }: Props
                           aria-pressed={on}
                           onClick={() => toggle(group, o.id)}
                           className={cn(
-                            'rounded-full border px-3.5 py-2 text-sm transition',
+                            'min-h-11 rounded-full border px-4 py-2 text-sm transition active:scale-95',
                             on ? 'border-primary bg-primary text-primary-ink' : 'border-line hover:border-primary',
                           )}
                         >
@@ -164,12 +164,12 @@ export function FilterBar({ products, shown, filters, onChange, loading }: Props
                 </fieldset>
               )
             })}
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex min-h-11 items-center gap-3 text-sm">
               <input
                 type="checkbox"
                 checked={filters.inStock}
                 onChange={(e) => onChange({ ...filters, inStock: e.target.checked })}
-                className="size-4 accent-[var(--ak-primary)]"
+                className="size-5 accent-[var(--ak-primary)]"
               />
               Only show pieces in stock
             </label>

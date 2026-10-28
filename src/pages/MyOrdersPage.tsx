@@ -45,7 +45,7 @@ export default function MyOrdersPage() {
               useCheckoutStore.getState().forgetDetails()
               void signOut()
             }}
-            className="flex items-center gap-1.5 py-2 text-sm text-ink-muted hover:text-primary">
+            className="flex min-h-11 items-center gap-1.5 text-sm text-ink-muted hover:text-primary">
             <LogOut className="size-4" /> Sign out
           </button>
         )}
@@ -142,7 +142,7 @@ function ReviewStrip({
             <span className="min-w-0">
               <span className="block truncate">{title}</span>
               {g && (
-                <Link to={`/order/${order.order_number}`} className="flex items-center gap-1 text-xs text-ink-muted hover:text-primary">
+                <Link to={`/order/${order.order_number}`} className="ak-hit relative flex items-center gap-1 text-xs text-ink-muted hover:text-primary">
                   <ShieldCheck className="size-3.5 shrink-0" />
                   {g.status === 'ended' ? `Guarantee ended ${formatDay(g.endsAt.toISOString())}` : `Guarantee till ${formatDay(g.endsAt.toISOString())}`}
                 </Link>
@@ -151,7 +151,7 @@ function ReviewStrip({
             {state && REVIEW_STATE[state] ? (
               <span className="shrink-0 text-xs text-ink-muted">{REVIEW_STATE[state]}</span>
             ) : (
-              <button type="button" onClick={() => onReview(productId, title)} className="flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline">
+              <button type="button" onClick={() => onReview(productId, title)} className="ak-hit relative flex shrink-0 items-center gap-1 text-xs font-semibold text-primary hover:underline">
                 <Star className="size-3.5" /> Write a review
               </button>
             )}

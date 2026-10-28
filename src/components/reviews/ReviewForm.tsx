@@ -64,7 +64,7 @@ export function ReviewForm({ productId, productTitle, open, onClose, onSubmitted
 
   return (
     <Overlay open={open} onClose={busy ? () => {} : onClose} label={`Review ${productTitle}`} placement="bottom-sheet">
-      <form onSubmit={submit} className="ak-card bg-bg max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-b-none p-5 sm:rounded-b-[inherit] sm:p-6">
+      <form onSubmit={submit} className="ak-card bg-bg max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-b-none p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] md:rounded-b-[inherit] md:p-6">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold tracking-wider text-ink-muted uppercase">Your review</p>

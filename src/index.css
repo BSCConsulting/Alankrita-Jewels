@@ -40,6 +40,8 @@
   --animate-fade-in: fade-in 0.25s ease-out both;
   --animate-slide-up: slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-slide-in-right: slide-in-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* `backwards`, not `both`: a held end state would override the inline transform used while swiping the sheet. */
+  --animate-sheet-up: sheet-up 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   --animate-shimmer: shimmer 2.4s linear infinite;
   --animate-ken-burns: ken-burns 6s ease-in-out infinite alternate;
 
@@ -50,6 +52,10 @@
   @keyframes slide-up {
     from { transform: translateY(24px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes sheet-up {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
   }
   @keyframes slide-in-right {
     from { transform: translateX(100%); }
@@ -95,7 +101,7 @@
   --ak-surface: rgb(255 255 255 / 0.72);
   --ak-surface-muted: #f5ebe1;
   --ak-ink: #1e293b;
-  --ak-ink-muted: #64748b;
+  --ak-ink-muted: #475569;
   --ak-primary: #1e293b;
   --ak-primary-ink: #ffffff;
   --ak-accent: #e8b4b8;
@@ -112,7 +118,7 @@
 }
 
 @utility ak-btn {
-  @apply inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition
+  @apply inline-flex min-h-11 items-center justify-center gap-2 px-5 py-3 text-sm font-semibold transition active:scale-[0.97]
     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent
     disabled:cursor-not-allowed disabled:opacity-50;
   border-radius: var(--ak-radius-pill);
@@ -129,6 +135,18 @@
 @utility ak-btn-whatsapp {
   @apply ak-btn bg-whatsapp text-white hover:brightness-105;
 }
+/* Grows the touch area to Apple's 44×44pt minimum without changing how a small control looks. Needs a positioned element. */
+@utility ak-hit {
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
 @utility ak-input {
   @apply w-full border border-line bg-white px-3.5 py-3 text-base text-ink placeholder:text-ink-muted/60
     focus:border-accent focus:ring-2 focus:ring-accent/30 focus:outline-none;
@@ -144,10 +162,36 @@
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /* `clip` (not `hidden`) stops sideways wobble on phones without breaking the sticky header. */
+  html,
+  body {
+    overflow-x: clip;
   }
   body {
     @apply bg-bg text-ink font-body antialiased;
     transition: background-color 0.4s ease, color 0.4s ease;
+  }
+  .overflow-y-auto,
+  .overflow-x-auto,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+  [role="dialog"] .overflow-y-auto {
+    overscroll-behavior: contain;
+  }
+  [data-sheet-drag] {
+    touch-action: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
   h1, h2, h3, .font-display {
     font-family: var(--ak-font-display);

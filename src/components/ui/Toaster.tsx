@@ -34,7 +34,7 @@ export const toast = {
 export function Toaster() {
   const { toasts, dismiss } = useToastStore()
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-4 z-[60] flex flex-col items-center gap-2 px-4" aria-live="polite">
+    <div className="pointer-events-none fixed inset-x-0 top-[calc(1rem+env(safe-area-inset-top))] z-[60] flex flex-col items-center gap-2 px-4" aria-live="polite">
       {toasts.map((t) => (
         <div
           key={t.id}

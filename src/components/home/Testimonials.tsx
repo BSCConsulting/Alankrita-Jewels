@@ -51,7 +51,7 @@ export function Testimonials({ cards }: { cards: Card[] }) {
               </span>
             )}
             {c.product && (
-              <Link to={`/product/${c.product.slug}#reviews`} className="mt-1 block truncate hover:text-primary hover:underline">
+              <Link to={`/product/${c.product.slug}#reviews`} className="-mt-2.5 -mb-3.5 block truncate py-3.5 leading-4 hover:text-primary hover:underline">
                 {c.product.title}
               </Link>
             )}

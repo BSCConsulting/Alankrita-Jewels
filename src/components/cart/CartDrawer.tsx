@@ -18,16 +18,16 @@ export function CartDrawer() {
 
   return (
     <Overlay open={isOpen} onClose={close} label="Shopping bag" placement="right">
-      <div className="flex h-full flex-col bg-bg">
-        <div className="flex items-center justify-between border-b border-line px-4 py-4">
+      <div className="flex h-full flex-col bg-bg md:pt-[env(safe-area-inset-top)]">
+        <div data-sheet-drag className="flex items-center justify-between border-b border-line py-3 pr-2 pl-4">
           <h2 className="font-display text-xl font-semibold">Your Bag ({items.length})</h2>
-          <button onClick={close} aria-label="Close bag" className="p-2">
+          <button onClick={close} aria-label="Close bag" className="grid size-11 place-items-center rounded-full transition active:scale-95">
             <X className="size-6" />
           </button>
         </div>
 
         {items.length === 0 ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 pb-[calc(2rem+env(safe-area-inset-bottom))] text-center">
             <ShoppingBag className="size-12 text-ink-muted" />
             <p className="text-ink-muted">Your bag is waiting for something beautiful.</p>
             <button onClick={close} className="ak-btn-primary">
@@ -36,7 +36,7 @@ export function CartDrawer() {
           </div>
         ) : (
           <>
-            <ul className="flex-1 divide-y divide-line overflow-y-auto px-4">
+            <ul className="flex-1 divide-y divide-line overflow-y-auto overscroll-contain px-4">
               {items.map((item) => (
                 <li key={item.key} className="flex gap-3 py-4">
                   <Link to={`/product/${item.slug}`} onClick={close} className="shrink-0">
@@ -49,12 +49,12 @@ export function CartDrawer() {
                       <span className="font-semibold">{formatINR(item.salePrice)}</span>{' '}
                       <span className="text-xs text-ink-muted line-through">{formatINR(item.mrp)}</span>
                     </p>
-                    <div className="mt-2 flex items-center gap-3">
+                    <div className="mt-2 flex items-center gap-5">
                       <div className="flex items-center rounded-full border border-line">
                         <button
                           onClick={() => setQuantity(item.key, item.quantity - 1)}
                           disabled={item.quantity <= 1}
-                          className="p-1.5 disabled:opacity-30"
+                          className="ak-hit relative p-1.5 transition active:scale-90 disabled:opacity-30"
                           aria-label="Decrease quantity"
                         >
                           <Minus className="size-3.5" />
@@ -63,13 +63,13 @@ export function CartDrawer() {
                         <button
                           onClick={() => setQuantity(item.key, item.quantity + 1)}
                           disabled={item.quantity >= lineLimit(items, item, item.maxQty)}
-                          className="p-1.5 disabled:opacity-30"
+                          className="ak-hit relative p-1.5 transition active:scale-90 disabled:opacity-30"
                           aria-label="Increase quantity"
                         >
                           <Plus className="size-3.5" />
                         </button>
                       </div>
-                      <button onClick={() => remove(item.key)} className="p-1.5 text-ink-muted hover:text-red-600" aria-label={`Remove ${item.title}`}>
+                      <button onClick={() => remove(item.key)} className="ak-hit relative p-1.5 text-ink-muted transition hover:text-red-600 active:scale-90" aria-label={`Remove ${item.title}`}>
                         <Trash2 className="size-4" />
                       </button>
                     </div>

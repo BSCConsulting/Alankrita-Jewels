@@ -5,8 +5,8 @@ import { formatINR } from '@/lib/format'
 /** Stand-in for Razorpay Checkout while RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET are not configured. */
 export function MockPaymentSheet({ amount, onResult }: { amount: number | null; onResult: (approved: boolean) => void }) {
   return (
-    <Overlay open={amount !== null} onClose={() => onResult(false)} label="Test payment" placement="bottom-sheet" className="w-full sm:max-w-sm">
-      <div className="rounded-t-3xl bg-white p-6 text-slate-800 sm:rounded-3xl">
+    <Overlay open={amount !== null} onClose={() => onResult(false)} label="Test payment" placement="bottom-sheet" className="w-full md:max-w-sm">
+      <div className="rounded-t-3xl bg-white p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-slate-800 md:rounded-3xl">
         <div className="flex items-center gap-2 text-xs font-semibold tracking-wide text-amber-700 uppercase">
           <FlaskConical className="size-4" /> Test mode · Razorpay not configured
         </div>

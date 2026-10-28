@@ -4,6 +4,7 @@ import { MessageCircleMore, Phone, X } from 'lucide-react'
 import { SITE } from '@/config/site'
 import { cn } from '@/lib/format'
 import { generalEnquiryLink, whatsappLink } from '@/lib/whatsapp'
+import { showsTabBar } from '@/components/layout/TabBar'
 import { Overlay } from '@/components/ui/Overlay'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { CHAT_UI, FAQS, type Lang } from './faqs'
@@ -28,7 +29,7 @@ export function WhatsAppChatbot() {
   const lastQuestion = useRef<HTMLDivElement>(null)
   const t = CHAT_UI[lang]
 
-  // Product pages have a sticky "Add to bag" bar on mobile, and the bridal builder has one on every screen; keep the launcher above them.
+  // Product pages have a sticky "Add to bag" bar on mobile, the bridal builder has one on every screen, and most other pages have the phone tab bar; keep the launcher above them.
   const liftForBar = pathname.startsWith('/product/')
   const liftForSetBar = pathname === '/bridal-set'
 
@@ -77,7 +78,9 @@ export function WhatsAppChatbot() {
             ? 'bottom-[calc(8rem+env(safe-area-inset-bottom))] sm:bottom-24'
             : liftForBar
               ? 'bottom-[calc(5.75rem+env(safe-area-inset-bottom))] md:bottom-5'
-              : 'bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-5',
+              : showsTabBar(pathname)
+                ? 'bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-5'
+                : 'bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-5',
         )}
       >
         {teaser && !open && (
@@ -104,9 +107,9 @@ export function WhatsAppChatbot() {
         </button>
       </div>
 
-      <Overlay open={open} onClose={() => setOpen(false)} label={t.title} placement="bottom-sheet" className="w-full sm:max-w-md">
-        <div className="flex max-h-[min(42rem,88vh)] flex-col overflow-hidden rounded-t-3xl bg-bg text-ink shadow-2xl sm:rounded-3xl">
-          <header className="bg-gradient-to-br from-hero-from to-hero-to text-hero-ink">
+      <Overlay open={open} onClose={() => setOpen(false)} label={t.title} placement="bottom-sheet" className="w-full md:max-w-md">
+        <div className="flex max-h-[min(42rem,88dvh)] flex-col overflow-hidden rounded-t-3xl bg-bg text-ink shadow-2xl md:rounded-3xl">
+          <header data-sheet-drag className="bg-gradient-to-br from-hero-from to-hero-to text-hero-ink">
             <div className="flex items-center gap-3 px-4 pt-4 pb-3">
               <Avatar online={online} className="size-11 text-xl" />
               <div className="min-w-0 flex-1" lang={lang}>
@@ -121,13 +124,13 @@ export function WhatsAppChatbot() {
                     onClick={() => setLang(l)}
                     aria-pressed={lang === l}
                     aria-label={l === 'en' ? 'English' : 'తెలుగు'}
-                    className={cn('min-w-8 rounded-full px-2 py-1 transition', lang === l ? 'bg-accent text-accent-ink shadow-sm' : 'opacity-80 hover:opacity-100')}
+                    className={cn('grid min-h-10 min-w-10 place-items-center rounded-full px-2 transition active:scale-95', lang === l ? 'bg-accent text-accent-ink shadow-sm' : 'opacity-80 hover:opacity-100')}
                   >
                     {l === 'en' ? 'EN' : <span lang="te">తె</span>}
                   </button>
                 ))}
               </div>
-              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="-mr-1 rounded-full p-2 transition hover:bg-black/15">
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close" className="-mr-2 grid size-11 place-items-center rounded-full transition hover:bg-black/15 active:scale-95">
                 <X className="size-5" />
               </button>
             </div>

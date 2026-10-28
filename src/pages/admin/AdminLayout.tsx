@@ -108,7 +108,7 @@ export default function AdminLayout() {
       {navOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setNavOpen(false)} />
-          <div className="absolute inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl">
+          <div className="absolute inset-y-0 left-0 flex w-64 flex-col bg-white pt-[env(safe-area-inset-top)] shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <p className="font-bold">Alankrita Admin</p>
               <button onClick={() => setNavOpen(false)} className="-m-2 p-2" aria-label="Close menu">
@@ -122,7 +122,7 @@ export default function AdminLayout() {
       )}
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white/90 px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur lg:hidden">
           <button onClick={() => setNavOpen(true)} className="-m-2 p-2" aria-label="Open menu">
             <Menu className="size-5" />
           </button>

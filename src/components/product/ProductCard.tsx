@@ -99,7 +99,7 @@ export function ProductCard({ product, eager = false }: { product: Product; eage
           <button
             type="button"
             onClick={() => setReelOpen(true)}
-            className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-black/70 py-1 pr-2.5 pl-1 text-[10px] font-semibold text-white shadow-lg backdrop-blur transition hover:bg-black sm:text-[11px]"
+            className="ak-hit absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full bg-black/70 py-1 pr-2.5 pl-1 text-[10px] font-semibold text-white shadow-lg backdrop-blur transition hover:bg-black sm:text-[11px]"
             aria-label={`Watch 5 second reel of ${product.title}`}
           >
             <span className="relative grid size-5 place-items-center rounded-full bg-white text-black">
@@ -120,7 +120,7 @@ export function ProductCard({ product, eager = false }: { product: Product; eage
       </div>
 
       <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
-        <Link to={href} className="line-clamp-2 text-sm leading-snug font-semibold hover:text-primary sm:text-[15px]">
+        <Link to={href} className="line-clamp-2 min-h-11 text-sm leading-snug font-semibold hover:text-primary sm:text-[15px]">
           {product.title}
         </Link>
         {product.telugu_title && (

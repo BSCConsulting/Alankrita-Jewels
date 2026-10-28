@@ -77,3 +77,24 @@ test('a page whose code was replaced by a new release reloads, then explains its
   await expect(page.getByText('We have just updated the site')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Reload page' })).toBeVisible()
 })
+
+test('on phones the tab bar opens the shop and bag as sheets that swipe away', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'The tab bar and sheets are phone-only')
+  await page.goto('/')
+  const tabs = page.getByRole('navigation', { name: 'Main' })
+  await tabs.getByRole('button', { name: 'Shop' }).click()
+  const shop = page.getByRole('dialog', { name: 'Shop by collection' })
+  await expect(shop.getByRole('link', { name: /Vaddanam/ })).toBeVisible()
+
+  const handle = shop.locator('[data-sheet-drag]').first()
+  const box = (await handle.boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2, box.y + 300, { steps: 8 })
+  await page.mouse.up()
+  await expect(shop).toBeHidden()
+
+  await tabs.getByRole('button', { name: /^Bag/ }).click()
+  await expect(page.getByRole('dialog', { name: 'Shopping bag' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0)
+})

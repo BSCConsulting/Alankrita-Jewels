@@ -7,6 +7,7 @@ import { loadClarity } from '@/lib/clarity'
 import { syncCartWithCatalog } from '@/services/cartSync'
 import { Footer } from './Footer'
 import { Header } from './Header'
+import { showsTabBar, TabBar } from './TabBar'
 
 export function StoreLayout() {
   useEffect(() => {
@@ -31,6 +32,8 @@ export function StoreLayout() {
         <Outlet />
       </main>
       <Footer />
+      {showsTabBar(pathname) && <div aria-hidden className="h-[calc(3.5rem+env(safe-area-inset-bottom))] md:hidden" />}
+      <TabBar />
       <CartDrawer />
       <WhatsAppChatbot />
     </div>

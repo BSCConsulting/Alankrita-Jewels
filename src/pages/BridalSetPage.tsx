@@ -185,7 +185,7 @@ function PieceTile(props: {
         {alreadyInBag && <span className="absolute top-2 left-2 rounded-full bg-ink px-2 py-0.5 text-[10px] font-semibold text-white">In your bag</span>}
       </Link>
       <div className="flex flex-1 flex-col gap-1 p-3">
-        <Link to={`/product/${p.slug}`} className="line-clamp-2 text-sm leading-snug font-semibold hover:text-primary">
+        <Link to={`/product/${p.slug}`} className="line-clamp-2 min-h-11 text-sm leading-snug font-semibold hover:text-primary">
           {p.title}
         </Link>
         <p className="text-sm font-bold">{formatINR(p.sale_price)}</p>
