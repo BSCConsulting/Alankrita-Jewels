@@ -1,11 +1,20 @@
 // Deliberately minimal: pages and data always come from the network, so customers never see stale prices or stock.
 // The only job is a friendly offline page when a page can't load at all.
-const CACHE = 'ak-offline-v1'
+const CACHE = 'ak-offline-v2'
 const OFFLINE_URL = '/offline.html'
 const OFFLINE_ASSETS = [OFFLINE_URL, '/icons/icon-192.png']
 
+// Cloudflare Pages redirects /offline.html to /offline; a redirected response can't answer a page load, so store a fresh copy.
+async function precache() {
+  const cache = await caches.open(CACHE)
+  const page = await fetch(OFFLINE_URL)
+  if (!page.ok) throw new Error('offline page unavailable')
+  await cache.put(OFFLINE_URL, new Response(await page.blob(), { headers: { 'Content-Type': 'text/html; charset=utf-8' } }))
+  await cache.add('/icons/icon-192.png')
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(OFFLINE_ASSETS)))
+  event.waitUntil(precache())
   self.skipWaiting()
 })
 
