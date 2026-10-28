@@ -201,7 +201,7 @@ export default function ProductPage() {
 
         <div className="grid gap-8 md:grid-cols-2 lg:gap-14">
           {/* Gallery */}
-          <div className="md:sticky md:top-32 md:self-start">
+          <div className="md:sticky md:top-32 md:self-start lg:top-40">
             <div className="ak-card relative overflow-hidden">
               <div
                 ref={gallery}

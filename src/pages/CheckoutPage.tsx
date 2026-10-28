@@ -353,7 +353,7 @@ export default function CheckoutPage() {
         </div>
 
         <aside className="hidden lg:block">
-          <div className="sticky top-32">
+          <div className="sticky top-32 lg:top-40">
             <OrderSummary items={items} totals={totals} mode={mode} />
           </div>
         </aside>

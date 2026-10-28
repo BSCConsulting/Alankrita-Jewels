@@ -5,7 +5,7 @@ import { cn } from '@/lib/format'
 
 /**
  * Flips Heritage Vault ⇄ Modern Studio.
- * `pill` hangs off the header edge on tablet/desktop; `icon` sits inside the mobile header bar.
+ * `pill` sits in the desktop collections row; `icon` sits in the phone and tablet header bar.
  */
 export function ThemeToggle({ className, variant = 'pill' }: { className?: string; variant?: 'pill' | 'icon' }) {
   const theme = useActiveTheme()
@@ -36,7 +36,7 @@ export function ThemeToggle({ className, variant = 'pill' }: { className?: strin
         type="button"
         onClick={toggle}
         className={cn(
-          'group flex items-center gap-2 border px-4 py-2 text-xs font-semibold tracking-wide whitespace-nowrap shadow-lg transition hover:-translate-y-0.5',
+          'group flex items-center gap-2 border px-4 py-2 text-xs font-semibold tracking-wide whitespace-nowrap shadow-sm transition hover:shadow-md active:scale-95',
           tone,
         )}
         style={{ borderRadius: 9999 }}
