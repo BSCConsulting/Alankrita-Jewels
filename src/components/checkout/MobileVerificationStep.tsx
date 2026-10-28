@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { KeyRound, Loader2, Smartphone } from 'lucide-react'
+import { track } from '@/lib/analytics'
 import { isSupabaseConfigured, toErrorMessage } from '@/lib/supabase'
 import { maskPhone, normalizeIndianMobile } from '@/lib/format'
 import { MOCK_OTP, RECAPTCHA_CONTAINER_ID, useAuthStore } from '@/stores/useAuthStore'
@@ -44,6 +45,7 @@ export function MobileVerificationStep() {
     setServerError(null)
     try {
       await verifyOtp(otp)
+      track('phone_verified')
     } catch (e) {
       setServerError(toErrorMessage(e, 'Incorrect OTP. Please try again.'))
       otpForm.setFocus('otp')

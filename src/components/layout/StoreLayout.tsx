@@ -2,11 +2,17 @@ import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { CartDrawer } from '@/components/cart/CartDrawer'
 import { WhatsAppChatbot } from '@/components/whatsapp/WhatsAppChatbot'
+import { track } from '@/lib/analytics'
+import { loadClarity } from '@/lib/clarity'
 import { syncCartWithCatalog } from '@/services/cartSync'
 import { Footer } from './Footer'
 import { Header } from './Header'
 
 export function StoreLayout() {
+  useEffect(() => {
+    track('page_view')
+    loadClarity()
+  }, [])
   const { pathname } = useLocation()
 
   useEffect(() => {

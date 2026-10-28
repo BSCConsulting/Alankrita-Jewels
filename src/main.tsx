@@ -1,9 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
+import { installErrorReporting } from './lib/errorReporting'
 import { useAuthStore } from './stores/useAuthStore'
 import './index.css'
 
+installErrorReporting()
 void useAuthStore.getState().init()
 
 createRoot(document.getElementById('root')!).render(

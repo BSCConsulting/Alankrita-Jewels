@@ -19,6 +19,7 @@ import { PAYMENT_RULES } from '@/config/site'
 import { useAsync } from '@/hooks/useAsync'
 import { cn, formatINR } from '@/lib/format'
 import { breadcrumbJsonLd, productJsonLd } from '@/lib/jsonld'
+import { track } from '@/lib/analytics'
 import { SITE_URL, useSeo } from '@/lib/seo'
 import {
   fetchBoughtTogether,
@@ -83,7 +84,10 @@ export default function ProductPage() {
 
   const remember = useRecentlyViewedStore((s) => s.remember)
   useEffect(() => {
-    if (product) remember(product.id)
+    if (product) {
+      remember(product.id)
+      track('view_item', product.id)
+    }
   }, [product, remember])
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { track } from '@/lib/analytics'
 import type { PricedLine } from '@/lib/pricing'
 import type { JewelleryType } from '@/types'
 
@@ -83,6 +84,7 @@ export const useCartStore = create<CartState>()(
           ? state.items.map((i) => (i.key === key ? { ...i, ...item, quantity: next } : i))
           : [...state.items, { ...item, key, quantity: next }]
         set({ items, isOpen: true })
+        track('add_to_cart', item.productId)
         return added
       },
       setQuantity: (key, quantity) =>

@@ -11,6 +11,7 @@ import { OrderSummary } from '@/components/checkout/OrderSummary'
 import { PaymentModeSelector } from '@/components/checkout/PaymentModeSelector'
 import { OTHER_STATES, PRIORITY_STATES, stateFromPincode } from '@/config/states'
 import { collectPayment, fetchPaymentMode, type PaymentGatewayMode } from '@/integrations/razorpay'
+import { track } from '@/lib/analytics'
 import { cn, formatINR, maskPhone } from '@/lib/format'
 import { computeTotals, paymentModeBlocker, type CouponRule } from '@/lib/pricing'
 import { customerAccessToken } from '@/lib/customerSession'
@@ -80,6 +81,11 @@ export default function CheckoutPage() {
   useEffect(() => {
     void fetchPaymentMode().then(setGateway)
   }, [])
+
+  const hasItems = items.length > 0
+  useEffect(() => {
+    if (hasItems) track('begin_checkout')
+  }, [hasItems])
 
   const lines = toPricedLines(items)
   const pricing = { coupon, giftWrap, giftCardBalance: giftCard?.balance ?? 0 }
@@ -151,6 +157,7 @@ export default function CheckoutPage() {
           replacesOrderId: previous?.id,
         })
         pendingOrder.current = { order, key }
+        track('order_placed')
         if (previous) toast.success(`Your earlier unpaid order ${previous.order_number} was replaced by ${order.order_number}.`)
         if (order.final_amount !== shownTotal) {
           pricesChecked.current = false
@@ -163,6 +170,7 @@ export default function CheckoutPage() {
       }
 
       const outcome = await collectPayment({ order, onMockPayment: requestMockPayment })
+      if (outcome.status === 'paid') track('payment_done')
       if (outcome.status === 'paid' || outcome.status === 'offline' || outcome.status === 'none') {
         pendingOrder.current = null
         clear()
@@ -193,7 +201,7 @@ export default function CheckoutPage() {
   const err = formState.errors
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-10 pb-16 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pt-10 pb-16 sm:px-6" data-clarity-mask="True">
       <h1 className="font-display text-3xl font-bold text-primary sm:text-4xl">Secure Checkout</h1>
       <ol className="mt-4 flex items-center gap-3 text-sm">
         {['Mobile', 'Address & Payment'].map((label, i) => (

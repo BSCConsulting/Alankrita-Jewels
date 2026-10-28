@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { Loader2 } from 'lucide-react'
+import { RouteError } from '@/components/layout/RouteError'
 import { StoreLayout } from '@/components/layout/StoreLayout'
 import { Toaster } from '@/components/ui/Toaster'
 import HomePage from '@/pages/HomePage'
@@ -34,6 +35,7 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <StoreLayout />,
+    errorElement: <RouteError />,
     children: [
       { index: true, element: <HomePage /> },
       { path: 'collections/:slug', element: <CollectionPage /> },
@@ -53,6 +55,7 @@ const router = createBrowserRouter([
   {
     path: '/admin',
     element: suspend(<AdminLayout />),
+    errorElement: <RouteError />,
     children: [
       { index: true, element: suspend(<AdminDashboard />) },
       { path: 'orders', element: suspend(<OrdersPage />) },

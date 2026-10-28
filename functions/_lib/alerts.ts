@@ -6,6 +6,7 @@ import { amountDueNow, type OrderRow } from './supabase'
 
 const DEDUPE_TTL_SECONDS = 7 * 24 * 60 * 60
 const ERROR_ALERT_INTERVAL_MS = 5 * 60 * 1000
+const CLIENT_ERROR_TTL_SECONDS = 6 * 60 * 60
 const lastErrorAlert = new Map<string, number>()
 
 const inr = (n: number) => `₹${Number(n).toLocaleString('en-IN')}`
@@ -41,12 +42,12 @@ export async function sendAlert(env: Env, html: string): Promise<{ ok: boolean; 
  * True the first time it is called for `key` (per Cloudflare location, for a week). Checkout retries
  * call create-order again, and the owner should get one alert per order, not one per attempt.
  */
-async function firstTime(key: string): Promise<boolean> {
+async function firstTime(key: string, ttlSeconds = DEDUPE_TTL_SECONDS): Promise<boolean> {
   try {
     const cache = (caches as unknown as { default: Cache }).default
     const url = `https://alerts.alankrita.internal/${encodeURIComponent(key)}`
     if (await cache.match(url)) return false
-    await cache.put(url, new Response('1', { headers: { 'cache-control': `max-age=${DEDUPE_TTL_SECONDS}` } }))
+    await cache.put(url, new Response('1', { headers: { 'cache-control': `max-age=${ttlSeconds}` } }))
   } catch {
     // Cache API unavailable (local dev): prefer a duplicate alert over a missed one.
   }
@@ -110,4 +111,33 @@ export async function alertServerError(env: Env, method: string, path: string, e
   lastErrorAlert.set(key, now)
   const message = err instanceof Error ? err.message : String(err)
   await sendAlert(env, `⚠️ <b>Server error</b> on <code>${escapeHtml(key)}</code>\n${escapeHtml(message.slice(0, 500))}`)
+}
+
+export interface ClientErrorReport {
+  message: string
+  source: string
+  page: string
+  browser: string
+}
+
+/** Errors in shoppers' browsers: one alert per distinct message every 6 hours (per Cloudflare location). */
+export async function alertClientError(env: Env, report: ClientErrorReport): Promise<void> {
+  if (!alertsEnabled(env)) return
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(report.message))
+  const key = [...new Uint8Array(digest).slice(0, 12)].map((b) => b.toString(16).padStart(2, '0')).join('')
+  if (!(await firstTime(`client-error:${key}`, CLIENT_ERROR_TTL_SECONDS))) return
+  await sendAlert(
+    env,
+    [
+      `🐞 <b>Error in a shopper's browser</b>`,
+      `<code>${escapeHtml(report.message)}</code>`,
+      report.source && `at ${escapeHtml(report.source)}`,
+      `Page: ${escapeHtml(report.page)}`,
+      `Browser: ${escapeHtml(report.browser)}`,
+      '',
+      'Repeats of this error are muted for 6 hours.',
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  )
 }

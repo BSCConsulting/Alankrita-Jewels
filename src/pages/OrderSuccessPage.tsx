@@ -43,7 +43,7 @@ export default function OrderSuccessPage() {
     )
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
+    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6" data-clarity-mask="True">
       {!order ? (
         <div className="space-y-3 text-center">
           <Skeleton className="mx-auto size-16 rounded-full" />

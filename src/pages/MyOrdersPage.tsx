@@ -30,7 +30,7 @@ export default function MyOrdersPage() {
   }, [init])
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pt-8 pb-16 sm:px-6">
+    <div className="mx-auto max-w-2xl px-4 pt-8 pb-16 sm:px-6" data-clarity-mask="True">
       <div className="mb-6 flex items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-bold">My orders</h1>

@@ -6,6 +6,7 @@ import {
   BellRing,
   CheckCircle2,
   Clock,
+  Filter,
   Loader2,
   MessageSquareHeart,
   PackageOpen,
@@ -18,10 +19,11 @@ import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { useAsync } from '@/hooks/useAsync'
 import { callApi } from '@/integrations/apiClient'
 import { cn, formatDay, formatINR, maskPhone } from '@/lib/format'
+import { FUNNEL_STEPS, type FunnelEvent } from '@/lib/analytics'
 import { ENDING_SOON_DAYS } from '@/lib/guarantee'
 import { toErrorMessage } from '@/lib/supabase'
 import { whatsappLink } from '@/lib/whatsapp'
-import { fetchDashboardStats, listGuaranteesEndingSoon, type ExpiringGuarantee } from '@/services/admin'
+import { fetchDashboardStats, fetchFunnel, listGuaranteesEndingSoon, type ExpiringGuarantee } from '@/services/admin'
 import { productThumbnail } from '@/services/catalog'
 import { countPendingReviews } from '@/services/reviews'
 import { listPendingStockAlerts } from '@/services/stockAlerts'
@@ -90,9 +92,88 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      <FunnelCard />
+
       <GuaranteeReminders />
 
       <TelegramAlertsCard />
+    </div>
+  )
+}
+
+const FUNNEL_LABEL: Record<FunnelEvent, string> = {
+  page_view: 'Visited the shop',
+  view_item: 'Viewed a product',
+  add_to_cart: 'Added to bag',
+  begin_checkout: 'Opened checkout',
+  phone_verified: 'Verified mobile',
+  order_placed: 'Placed an order',
+  payment_done: 'Paid online',
+}
+/** Cash-on-delivery orders never pay online, so the last step is not a drop-off. */
+const DROP_STEPS = FUNNEL_STEPS.filter((s) => s !== 'payment_done')
+
+function FunnelCard() {
+  const [days, setDays] = useState(30)
+  const { data, error } = useAsync(() => fetchFunnel(days), [days])
+  const top = data ? Math.max(1, ...Object.values(data)) : 1
+  let worst: { from: FunnelEvent; to: FunnelEvent; lost: number } | null = null
+  if (data)
+    for (let i = 1; i < DROP_STEPS.length; i++) {
+      const prev = data[DROP_STEPS[i - 1]]
+      const lost = prev > 0 ? 1 - data[DROP_STEPS[i]] / prev : 0
+      if (prev >= 5 && (!worst || lost > worst.lost)) worst = { from: DROP_STEPS[i - 1], to: DROP_STEPS[i], lost }
+    }
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Filter className="size-4 text-slate-400" /> Where shoppers drop off
+          </h2>
+          <p className="text-sm text-slate-500">Browser visits reaching each step. Anonymous: no names or numbers are recorded.</p>
+        </div>
+        <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="ak-input w-auto bg-white py-1.5 text-sm" aria-label="Period">
+          <option value={7}>Last 7 days</option>
+          <option value={30}>Last 30 days</option>
+          <option value={90}>Last 90 days</option>
+        </select>
+      </div>
+      {error ? (
+        <p className="mt-3 text-sm text-red-700">{error.message}</p>
+      ) : !data ? (
+        <p className="mt-3 text-sm text-slate-500">Loading…</p>
+      ) : data.page_view === 0 ? (
+        <p className="mt-3 text-sm text-slate-500">No visits recorded yet for this period.</p>
+      ) : (
+        <>
+          <ol className="mt-4 space-y-2">
+            {FUNNEL_STEPS.map((step, i) => {
+              const count = data[step]
+              const prev = i > 0 ? data[FUNNEL_STEPS[i - 1]] : 0
+              return (
+                <li key={step} className="grid grid-cols-[8.5rem_1fr_auto] items-center gap-3 text-sm sm:grid-cols-[10rem_1fr_7rem]">
+                  <span className="truncate text-slate-600">{FUNNEL_LABEL[step]}</span>
+                  <span className="h-6 overflow-hidden rounded bg-slate-100">
+                    <span className="block h-full rounded bg-slate-800" style={{ width: `${(count / top) * 100}%` }} />
+                  </span>
+                  <span className="text-right tabular-nums">
+                    <strong>{count}</strong>
+                    {i > 0 && prev > 0 && <span className="ml-1.5 text-xs text-slate-500">{Math.round((count / prev) * 100)}%</span>}
+                  </span>
+                </li>
+              )
+            })}
+          </ol>
+          <p className="mt-3 text-xs text-slate-500">% is of the step above. Cash on delivery orders don't pay online, so “Paid online” is lower by design.</p>
+          {worst && worst.lost > 0 && (
+            <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              Biggest drop: {Math.round(worst.lost * 100)}% leave between “{FUNNEL_LABEL[worst.from]}” and “{FUNNEL_LABEL[worst.to]}”.
+            </p>
+          )}
+        </>
+      )}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router'
 import { Clock, Mail, MapPin, Phone } from 'lucide-react'
 import { WhatsAppIcon } from '@/components/ui/WhatsAppIcon'
 import { BUSINESS, PAYMENT_RULES, SITE } from '@/config/site'
+import { CLARITY_ID } from '@/lib/clarity'
 import { useSeo } from '@/lib/seo'
 import { whatsappLink } from '@/lib/whatsapp'
 import NotFoundPage from './NotFoundPage'
@@ -131,7 +132,20 @@ const POLICIES: Record<string, Policy> = {
       },
       {
         heading: 'Cookies and storage on your device',
-        body: <p>We store your shopping bag, theme choice and sign-in session in your browser so the site works between visits. We do not use advertising trackers.</p>,
+        body: (
+          <>
+            <p>
+              We store your shopping bag, wishlist, recently viewed pieces, theme choice and sign-in session in your browser so the site works between
+              visits. We do not use advertising trackers.
+            </p>
+            <p>
+              To improve the shop we count, anonymously, how many visits reach each step (viewing a piece, adding to bag, checkout). These counts use a
+              random id for your browser tab — never your name, number or address — and are deleted after 180 days.
+              {CLARITY_ID &&
+                ' We also use Microsoft Clarity to see how pages are used (clicks and scrolling). It hides what you type, and your checkout and order pages are hidden from it completely.'}
+            </p>
+          </>
+        ),
       },
       {
         heading: 'Retention and your rights',

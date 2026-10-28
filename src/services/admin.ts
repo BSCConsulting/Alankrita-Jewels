@@ -1,3 +1,4 @@
+import { FUNNEL_STEPS, MOCK_EVENTS_KEY, type FunnelEvent } from '@/lib/analytics'
 import { addMonths, orderGuarantees, type Guarantee } from '@/lib/guarantee'
 import { blobToDataUrl, optimizeImage } from '@/lib/media'
 import { STORAGE_BUCKET, supabase } from '@/lib/supabase'
@@ -305,6 +306,23 @@ export async function exportOrders(filters: OrderFilters): Promise<Order[]> {
     all.push(...(data ?? []).map(normalizeOrder))
     if (!data || data.length < pageSize) return all
   }
+}
+
+/** Distinct shopping sessions that reached each step in the last `days` days. */
+export async function fetchFunnel(days: number): Promise<Record<FunnelEvent, number>> {
+  const counts = Object.fromEntries(FUNNEL_STEPS.map((s) => [s, 0])) as Record<FunnelEvent, number>
+  if (!supabase) {
+    const since = Date.now() - days * 86_400_000
+    const events = JSON.parse(localStorage.getItem(MOCK_EVENTS_KEY) ?? '[]') as Array<{ e: FunnelEvent; s: string; t: number }>
+    const sessions = new Map<FunnelEvent, Set<string>>()
+    for (const ev of events) if (ev.t >= since && ev.e in counts) sessions.set(ev.e, (sessions.get(ev.e) ?? new Set()).add(ev.s))
+    for (const [step, set] of sessions) counts[step] = set.size
+    return counts
+  }
+  const { data, error } = await supabase.rpc('admin_funnel', { p_days: days })
+  if (error) throw error
+  for (const row of (data ?? []) as Array<{ event: FunnelEvent; sessions: number | string }>) if (row.event in counts) counts[row.event] = Number(row.sessions)
+  return counts
 }
 
 export interface ExpiringGuarantee extends Guarantee {
